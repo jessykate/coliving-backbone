@@ -1,0 +1,74 @@
+<html>
+    <head>                                                                                                                                                     
+        <title>Fog</title>
+        <link rel="stylesheet" href="css/style.css" />
+
+        <script type="text/template" id="signup-template">
+			<div id="signupform">
+				<form id="house-form">
+					<!-- required -->
+					<div class="form-input">
+						<h2>Required</h2>
+						<label>House Address</label>
+						<input id="form-address" name="address" type="text" placeholder="123 example avenue, anytown, anywhere, yourcountry" required>
+					</div>
+					<div class="form-input">
+						<label>Number of Bedrooms</label>
+						<input id="form-bedrooms" name="bedrooms" type="number" required>
+					</div>
+
+					<div id="form-fields-optional">
+						<h2>Optional</h2>
+						<div class="form-input">
+							<label>House Name</label>
+							<input id="form-name" name="name" type="text" placeholder="House Name">
+						</div>
+						<div class="form-input">
+							<label>House Contact (email address)</label>
+							<input id="form-contact" name="contact" type="email" placeholder="you@example.com">
+						</div>
+						<div class="form-input">
+							<label>Tell us a bit about your house and its culture</label>
+							<textarea id="form-description" name="description" cols="50" rows="10"></textarea>
+						</div>
+						<div class="form-input">
+							<label>House website</label>
+							<input id="form-website" name="website" type="text" placeholder="http://example.com">
+						</div>
+						<div class="form-input">
+							<label>House offers guest accommodations (crash space, guest bedrooms)</label>
+							<input id="form-accommodations" name="accommodations" value="accommodations" type="checkbox"> 
+						</div>
+						<div class="form-input">
+							<label>House has event/co-working space</label>
+							<input id="form-events" name="events" value="events" type="checkbox"> 
+						</div>
+					</div><!-- end optional fields -->
+					<input type="submit" id="form-submit">
+				</form>
+			</div>
+		</script>
+
+        <script type="text/template" id="listing-template">
+		</script>
+
+		<!-- javascript includes must appear AFTER the template definitions, or
+		the templates won't be defined when backbone is invoked.  --> 
+        <script type="text/javascript" src="/js/vendor/jquery-1.7.2.js"></script>
+        <script type="text/javascript" src="/js/vendor/modernizr-1.6.min.js"></script>
+        <script type="text/javascript" src="/js/vendor/underscore.js"></script>
+        <script type="text/javascript" src="/js/vendor/json2.js"></script>
+        <script type="text/javascript" src="/js/vendor/backbone.js"></script>
+    </head>
+
+    <body>
+        <div id="container">
+            <div id="mainmap">map goes here</div>
+			<div id="content">
+				<!-- this gets populated with listings or the signup form -->	
+			</div>
+        </div>
+        <script type="text/javascript" src="/js/coliving.js"></script>
+    </body>
+</html>
+

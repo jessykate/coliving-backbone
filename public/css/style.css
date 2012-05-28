@@ -1,0 +1,9 @@
+#mainmap {
+	height: 400px;
+	width: 100%;
+	background-color: #E6F1F6;
+}
+
+label {
+	display:block;
+}
