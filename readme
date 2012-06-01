@@ -1,0 +1,13 @@
+a map and directory of community and coliving houses, built as a single-page
+backbone,js application with django for persistence layer. 
+
+client requirements:
+- all client-side dependencies included in js/ directory
+
+server
+- django 1.4
+- tasty-pie
+
+to run:
+- start an http server in the public/ directory and visit the correct
+  hostnameand port in your browser. 
