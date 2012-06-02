@@ -24,7 +24,7 @@
 							<input id="form-name" name="name" type="text" placeholder="House Name">
 						</div>
 						<div class="form-input">
-							<label>House Contact (email address)</label>
+							<label>House Contact (email address) (Kept private)</label>
 							<input id="form-contact" name="contact" type="email" placeholder="you@example.com">
 						</div>
 						<div class="form-input">
@@ -49,9 +49,89 @@
 			</div>
 		</script>
 
-        <script type="text/template" id="listing-template">
+        <script type="text/template" id="preview-template">
 			<div class="house-listing">
-				<h2>boo</h2>
+
+				<h2>Check the location on the map and the fields below. Does everything look ok?</h2>
+				<div id="signupform">
+					<form id="house-form">
+						<!-- required -->
+						<div class="form-input">
+							<h2>Required</h2>
+							<label>House Address</label>
+							<input id="form-address" name="address" type="text" value="<%= address %>" required>
+						</div>
+						<div class="form-input">
+							<label>Number of Bedrooms</label>
+							<input id="form-bedrooms" name="bedrooms" type="number" value="<%= bedrooms %>" required>
+						</div>
+						<input type="hidden" name="latLong" value="<%= latLong %>">
+
+						<div id="form-fields-optional">
+							<h2>Optional</h2>
+							<div class="form-input">
+								<label>House Name</label>
+								<input id="form-name" name="name" type="text" 
+									<% if (typeof(name) != "undefined") { %> value=<%= name %> <% } else { %> placeholder="House Name" <% } %>
+								>
+							</div>
+							<div class="form-input">
+								<label>House Contact (email address) (Kept private)</label>
+								<input id="form-contact" name="contact" type="email" 
+									<% if (typeof(contact) != "undefined") { %> value=<%= contact %> <% } else { %> placeholder="you@example.com" <% } %>
+								>
+							</div>
+							<div class="form-input">
+								<label>Tell us a bit about your house and its culture</label>
+								<textarea id="form-description" name="description" cols="50" rows="10">
+									<% if (typeof(description) != "undefined") { %> value=<%= description %> <% } %>
+								</textarea>
+							</div>
+							<div class="form-input">
+								<label>House website</label>
+								<input id="form-website" name="website" type="text" 
+									<% if (typeof(website) != "undefined") { %> value=<%= website %> <% } else { %> placeholder="http://example.com" <% } %>
+							</div>
+							<div class="form-input">
+								<label>House offers guest accommodations (crash space, guest bedrooms)</label>
+								<input id="form-accommodations" name="accommodations" value="accommodations" type="checkbox"
+									<% if (typeof(accommodations) != "undefined") { %> checked <% } %> 
+								> 
+							</div>
+							<div class="form-input">
+								<label>House has event/co-working space</label>
+								<input id="form-events" name="events" value="events" type="checkbox"
+									<% if (typeof(events) != "undefined") { %> checked <% } %> 
+								> 
+							</div>
+						</div><!-- end optional fields -->
+						<input type="Submit" value="Confirm" id="form-confirm">
+					</form>
+				</div>
+			</div>
+		</script>
+
+        <script type="text/template" id="listings-template">
+			<div>
+				<table>
+					<tr>
+						<th>Address</th>
+						<th>Rooms</th>
+						<th>House Name</th>
+					</tr>
+				<% _.each(houses, function(house) { %>
+					<a href="">
+						<tr>
+							<td> <% if (typeof(house.address) != "undefined") { %>  <%= house.address %> <% } %> </td>
+							<td> <% if (typeof(house.bedrooms) != "undefined") { %>  <%= house.bedrooms %> <% } %> </td>
+							<td> <% if (typeof(house.name) != "undefined") { %>  <%= house.name %> <% } %> </td>
+						</tr>
+					</a>
+					<% }); %>
+				</table>
+				<div id="action-add">
+					<input type="submit" id="add-house" value="Add your House">
+				</div>
 			</div>
 		</script>
 
@@ -68,7 +148,7 @@
 
     <body>
         <div id="container">
-            <div id="mainmap">map goes here</div>
+            <div id="mainmap"></div>
 			<div id="content">
 				<!-- this gets populated with listings or the signup form -->	
 			</div>
