@@ -243,3 +243,4 @@ $(function() {
 // different color for the location most recently submitted.
 // form validation - required fields, url, email, 
 // open layers form control - make less fugly
+// map markers should have basic house info and link
