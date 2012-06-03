@@ -113,21 +113,21 @@
 
         <script type="text/template" id="listings-template">
 			<div>
-				<table>
-					<tr>
+				<table id="house-listing-table">
+					<thead><tr>
 						<th>Address</th>
 						<th>Rooms</th>
 						<th>House Name</th>
-					</tr>
-				<% _.each(houses, function(house) { %>
-					<a href="">
+					</tr></thead>
+					<tbody>
+					<% _.each(houses, function(house) { %>
 						<tr>
-							<td> <% if (typeof(house.address) != "undefined") { %>  <%= house.address %> <% } %> </td>
-							<td> <% if (typeof(house.bedrooms) != "undefined") { %>  <%= house.bedrooms %> <% } %> </td>
-							<td> <% if (typeof(house.name) != "undefined") { %>  <%= house.name %> <% } %> </td>
+							<td class="row-link"> <a href="/house/<%= house.id %>"> <% if (typeof(house.address) != "undefined") { %>  <%= house.address %> <% } %> </a> </td>
+							<td class="row-link"> <% if (typeof(house.bedrooms) != "undefined") { %>  <%= house.bedrooms %> <% } %> </td>
+							<td class="row-link"> <% if (typeof(house.name) != "undefined") { %>  <%= house.name %> <% } %> </td>
 						</tr>
-					</a>
 					<% }); %>
+					</tbody>
 				</table>
 				<div id="action-add">
 					<input type="submit" id="add-house" value="Add your House">
@@ -135,15 +135,6 @@
 			</div>
 		</script>
 
-		<!-- javascript includes must appear AFTER the template definitions, or
-		the templates won't be defined when backbone is invoked.  --> 
-        <script type="text/javascript" src="/js/vendor/jquery-1.7.2.js"></script>
-        <script type="text/javascript" src="/js/vendor/modernizr-1.6.min.js"></script>
-        <script type="text/javascript" src="/js/vendor/underscore.js"></script>
-        <script type="text/javascript" src="/js/vendor/json2.js"></script>
-        <script type="text/javascript" src="/js/vendor/backbone.js"></script>
-		<script src="http://www.openlayers.org/api/OpenLayers.js"></script>
-		<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOyvXiCkksUfYi-1JgydDfXLZAIWZ9xv4&sensor=true"> </script>
     </head>
 
     <body>
@@ -153,7 +144,32 @@
 				<!-- this gets populated with listings or the signup form -->	
 			</div>
         </div>
+
+		<!-- javascript includes must appear AFTER the template definitions and
+		anything else the javascript code refers to, or they won't be defined
+		when backbone is invoked.  --> 
+        <script type="text/javascript" src="/js/vendor/jquery-1.7.2.js"></script>
+        <script type="text/javascript" src="/js/vendor/modernizr-1.6.min.js"></script>
+        <script type="text/javascript" src="/js/vendor/underscore.js"></script>
+        <script type="text/javascript" src="/js/vendor/json2.js"></script>
+        <script type="text/javascript" src="/js/vendor/backbone.js"></script>
+		<script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+		<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCOyvXiCkksUfYi-1JgydDfXLZAIWZ9xv4&sensor=true"> </script>
+		<script type="text/javascript" src="js/vendor/jquery.dataTables.min.js"></script>
         <script type="text/javascript" src="/js/coliving.js"></script>
+		<script>
+			// load the data tables plugin
+			$(document).ready(function(){
+				
+				$('#house-listing-table').dataTable();
+				
+				$('tr').click( function() {
+				    window.location = $(this).find('a').attr('href');
+				}).hover( function() {
+					$(this).toggleClass('hover');
+				});
+			});
+		</script>
     </body>
 </html>
 
