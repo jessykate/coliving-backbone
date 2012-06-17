@@ -16,6 +16,7 @@ $(function() {
 	//	return 0;
 	//};
 	*/
+
 	/////////////////////// UTIL ////////////////////////
 	locationParse = function(locString) {
 		// returns a list [longitude, latitude] (in that order!)
@@ -29,8 +30,6 @@ $(function() {
 	/////////////////////// MODELS ////////////////////////
 
 	window.House = Backbone.Model.extend({
-		idAttribute: "_id",
-
 		initialize: function() {
 			this.geocoder = new google.maps.Geocoder();
 		},
@@ -52,7 +51,19 @@ $(function() {
 
 	window.Houses = Backbone.Collection.extend({
 		model: House,
-		url: "/api/houses"
+		// XXX (jks) careful with pagination and limits once list gets long
+		url: "http://localhost:8080/api/v1/houses/?format=json",
+		parse: function(response) {
+			/* from the backbone docs: "The function is passed the raw response
+			 * object, and should return the array of model attributes to be
+			 * added to the collection. The default implementation is a no-op,
+			 * simply passing through the JSON response." */
+			
+			// the tasty-pie API we are working with returns some metadata we
+			// don't want to include in the model, such as limits and
+			// pagination information. we need to pull out the models. 
+			return response.objects;
+		}
 	});
 
 	/////////////////////// VIEWS ////////////////////////
@@ -61,8 +72,25 @@ $(function() {
 	// javascript is evaluated immediately. 
 	// XXX (jessykate) why does this not work when using "this"?
 	window.houses = new Houses();
-	houses.reset(bootstrapHouses);
+	// TODO this us temporary - bootstrap properly! 
+	// fetch() triggers the reset event
+	houses.fetch()
 	
+
+	window.HouseView = Backbone.View.extend({
+		initialize: function() {
+			this.template = _.template($("#house-template").html());
+		},
+
+		render: function() {
+			console.log("rendering individual house view");
+			console.log(this.model.toJSON());
+			$(this.el).html(this.template( {house: this.model.toJSON()} ));
+			return this;
+		}
+
+	});
+
 	window.PreviewView = Backbone.View.extend({
 		initialize: function() {
 			this.template = _.template($("#preview-template").html());
@@ -71,19 +99,6 @@ $(function() {
 		render: function() {
 			console.log("rendering house listing preview");
 			$(this.el).html(this.template(this.model.toJSON()));
-			return this;
-		}
-
-	});
-
-	window.ListingsView = Backbone.View.extend({
-		initialize: function() {
-			this.template = _.template($("#listings-template").html());
-		},
-
-		render: function() {
-			console.log("rendering house listings");
-			$(this.el).html(this.template({houses: this.collection.toJSON()}));
 			return this;
 		}
 
@@ -98,12 +113,18 @@ $(function() {
 			this.collection = houses;
 			this.template = _.template($("#signup-template").html());
 			_.bindAll(this, 'render', 'preview', 'formSubmit', 'updateMap', 'confirmSubmit');
+			this.collection.on('sync', this.returnHome, true);
 		},
 
 		render: function() {
 			console.log("rendering new house form");
 			$(this.el).html(this.template());
 			return this;
+		},
+
+		returnHome: function() {
+			console.log("sync event triggered, returning to Home View");
+			app.navigate("/", {trigger:true});
 		},
 
 		houseFromForm: function(e) {
@@ -127,7 +148,8 @@ $(function() {
 		},
 
 		houseListingPreview: function(house) {
-			// display the house listing below the map. triggered by the add event on the collection. 
+			// display the house listing below the map. triggered by the add
+			// event on the collection. 
 			var pv = new PreviewView({model:house});
 			$("#content").html(pv.render().el);
 		},
@@ -166,13 +188,16 @@ $(function() {
 		},
 
 		confirmSubmit: function(e) {
-			// save the verified model to the collection, which will trigger
-			// the 'add' event on the collection and the model. 
+			/* save the verified model to the collection, which will trigger
+			 * the 'add' event on the model. app.navigate is set up to trigger
+			 * on the ADD event rather than being called directly here, since
+			 * otherwise the create() call might not be done by the time
+			 * navigate is called.  
+			 */
 			houseAttr = this.houseFromForm(e);
 			console.log("house attributes after confirm.");
-			h = this.collection.create(houseAttr);
-			console.log(h);
-			app.navigate("/", {trigger:true});
+			console.log(houseAttr);
+			this.collection.create(houseAttr, {wait: true});
 			e.preventDefault();
 		}
 
@@ -180,24 +205,42 @@ $(function() {
 
 	window.AppView = Backbone.View.extend({
 		events: {'click #add-house': 'newHouseHandler',
-			'click tr.row-link': 'houseDisplayHandler'
+			'click .house-link': 'displayHouse',
+			'click tr.house-link': 'houseDisplayHandler'
 		},
 	
 		initialize: function(options) {
 			this.collection = houses;
 
 			this.template = _.template($("#listings-template").html());
+			houses.on('reset', this.render, this);
 			_.bindAll(this, 'render', 'newHouseHandler', 'renderMap');
-			this.renderMap();
 		},
 
 		render: function() {
+			this.renderMap();
 			$(this.el).html(this.template({houses: this.collection.toJSON()}));
+			console.log("loading data tables plugin");
+			$('#house-listing-table').dataTable();
+			$('tr.row-link').click( function() {
+				window.location = $('a', this).attr('href');
+			});
+			$('tr.row-link').hover( function() {
+				$(this).toggleClass('hover');
+			});
 			return this;
 		},
 
 		houseDisplayHandler: function(e) {
 			console.log("in houseDisplayHandler");
+		},
+
+		displayHouse: function(e) {
+			console.log("in displayHouse");
+			var path = e.target.getAttribute('href');
+			app.navigate(path, {trigger:true});
+			e.preventDefault();
+			return false;
 		},
 
 		newHouseHandler: function(e) {
@@ -206,7 +249,7 @@ $(function() {
 		},
 
 		renderMap: function() {
-			console.log("in renderMap()");
+			console.log("in renderMap(). processing " + this.collection.length + " items.");
 
 			var locations = this.collection.pluck("latLong");
 			locations.forEach(function(ll) {
@@ -214,7 +257,6 @@ $(function() {
 				var lonlat = new OpenLayers.LonLat(loc[0], loc[1]).transform(
 					new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
 					new OpenLayers.Projection("EPSG:900913")
-					//map.getProjectionObject() // to Spherical Mercator Projection
 				);
 				markerLayer.addMarker(new OpenLayers.Marker(lonlat));
 			});
@@ -233,10 +275,13 @@ $(function() {
 			map.updateCenter("33.137551, -163.476563", zoom, this);
 		},
 
+		/*
 		showListings: function(model, coll) {
 			var lv = new ListingsView({collection:coll});
 			$("#content").html(lv.render().el);
+
 		}
+		*/
 	});
 
 	/////////////////////// ROUTER ////////////////////////
@@ -248,14 +293,13 @@ $(function() {
 		routes: {
 			"": "home",
 			"new": "newHouse",
-			"house/:houseid" : "showHouse"
+			"house/:houseid": "showHouse"
 		},
 
 		initialize: function() {
 		},
 		
 		home: function() {
-			console.log(this.houses);
 			appview = new AppView({el:$("#content"), collection: houses});
 			appview.render();
 		},
@@ -265,8 +309,12 @@ $(function() {
 			houseform.render();
 		},
 
-		showHouse: function() {
-
+		showHouse: function(houseid) {
+			console.log("retreiving view for house id = " + houseid);
+			var h = houses.get(houseid);
+			console.log(h);
+			houseview = new HouseView({ el: $("#content"), model: h });
+			houseview.render();
 		}
 
 	});
@@ -284,9 +332,13 @@ $(function() {
 
 // TODO list
 // + houses list should persist after return to home view
-// persistent storage
-// house edit - use oath?
+// + persistent storage
+// fields with spaces are being b0rked (cf. name field)
+// map not showing initial houses on load (delay map loading till fetch completes?)
+// house edit - use django auth
+// main app view render() is called twice each time
 // click on and view individual houses. push state for individual house ids
+// calling urls directly is a problem because houses collection is not yet populated. 
 // different color for the location most recently submitted.
 // map markers should have basic house info and link
 // recapcha
