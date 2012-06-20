@@ -4,7 +4,7 @@
         <link rel="stylesheet" href="css/style.css" />
 
         <script type="text/template" id="signup-template">
-			<div id="signupform">
+			<div id="signup-form">
 				<form id="house-form">
 					<!-- required -->
 					<div class="form-input">
@@ -47,13 +47,15 @@
 					<input type="submit" id="form-submit">
 				</form>
 			</div>
+			<div id="house-map">house map</div>
+			<div class="clear"></div>
 		</script>
 
-        <script type="text/template" id="preview-template">
+        <script type="text/template" id="edit-template">
 			<div class="house-listing">
 
 				<h2>Check the location on the map and the fields below. Does everything look ok?</h2>
-				<div id="signupform">
+				<div id="signup-form">
 					<form id="house-form">
 						<!-- required -->
 						<div class="form-input">
@@ -112,6 +114,7 @@
 		</script>
 
         <script type="text/template" id="listings-template">
+            <div id="mainmap"></div>
 			<div>
 				<table id="house-listing-table">
 					<thead><tr>
@@ -151,11 +154,8 @@
     </head>
 
     <body>
-        <div id="container">
-            <div id="mainmap"></div>
-			<div id="content">
-				<!-- this gets populated with listings or the signup form -->	
-			</div>
+        <div id="content">
+			<!-- this gets populated by backbone views -->	
         </div>
 
 		<!-- javascript includes must appear AFTER the template definitions and
