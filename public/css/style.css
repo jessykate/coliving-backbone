@@ -33,3 +33,15 @@ tr.hover {
 .clear {
 	clear: both;
 }
+
+.form-wrapper h2,h3 {
+	display: inline;
+}
+
+#form-address, #input-location-search {
+	width: 300px;
+}
+
+#radius-location-search {
+	width: 50px;
+}

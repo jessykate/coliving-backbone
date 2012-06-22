@@ -27,7 +27,7 @@ $(function() {
 		return loc;
 	};
 
-	/////////////////////// MODELS ////////////////////////
+	////////////// MODELS & COLLECTIONS /////////////////
 
 	window.House = Backbone.Model.extend({
 		initialize: function() { },
@@ -73,6 +73,16 @@ $(function() {
 		}
 	});
 
+	window.Location = Backbone.Model.extend({});
+
+	window.Locations = Backbone.Collection.extend({
+		model: Location,
+		url: "http://localhost:8080/api/v1/locations/?format=json",
+		parse: function(response) {
+			return response.objects;
+		}
+	});
+
 	/////////////////////// VIEWS ////////////////////////
 
 	// houses needs to be declared before the objects below refer to it, since
@@ -108,6 +118,7 @@ $(function() {
 			console.log("rendering new house form");
 			$(this.el).html(this.template());
 			
+			// credit: http://stackoverflow.com/questions/1909441/jquery-keyup-delay
 			var delay = function(callback, ms) {
 				var timer = 0;
 				return function(callback,ms) {
@@ -118,6 +129,16 @@ $(function() {
 			
 			var that = this;
 			console.log(that.model);
+
+			// register a location autocomplete function on the address input.
+			var location_search_field = document.getElementById('form-address');
+			var options = {
+				types: ['geocode']
+			}
+			var autocomplete = new google.maps.places.Autocomplete(location_search_field, options);
+
+			// also register a keyup function that, after a brief delay, will
+			// geocode the address contained in the text field. 
 			$('#form-address').keyup(function() {
 				delay(function() {
 					// get address field and geocode it, then display a map
@@ -200,14 +221,18 @@ $(function() {
 
 	window.AppView = Backbone.View.extend({
 		events: {'click #add-house': 'newHouseForm',
+			'click #submit-location-search': 'doSearch',
 			'click .row-link': 'displayHouse'
 		},
 	
 		initialize: function(options) {
-			this.collection = houses;
-			houses.on('reset', this.render, this);
+			this.collection = new Locations();
+			this.collection.fetch();
+
+			//houses.on('reset', this.render, this);
 			this.template = _.template($("#listings-template").html());
 			_.bindAll(this, 'render', 'newHouseForm', 'renderMap');
+			this.render();
 
 		},
 
@@ -218,8 +243,58 @@ $(function() {
 			$('tr.row-link').hover( function() {
 				$(this).toggleClass('hover');
 			});
+			// XXX initial renderMap should just be a bg, no objects (since
+			// they're not loaded yet). 
 			this.renderMap();
+
+			// register a location autocomplete function on the search box.
+			var location_search_field = document.getElementById('input-location-search');
+			var options = {
+				types: ['geocode']
+			}
+			var autocomplete = new google.maps.places.Autocomplete(location_search_field, options);
+
 			return this;
+		},
+
+		doSearch: function(e) {
+			console.log("in doSearch");
+			// pull out the value of the input field, and do a text search on
+			// the database model's address field. 
+			var search_loc = $('#input-location-search').val();
+			var radius = $('#radius-location-search').val();
+			console.log(search_loc);
+			console.log(radius);
+			console.log(this.collection.models);
+
+			// geocode the search location
+
+			doGeocoding = function(search_loc, that) {
+				var geocoder = new google.maps.Geocoder();
+				geocoder.geocode({'address': search_loc}, function(results, status) {
+					window.alert("geocode status: " + status);
+				});
+
+				get_loc_matches = function(search_gloc) {
+					matches = {};
+					console.log("get_loc_matches: iterating over " + that.collection.length + "items");
+					that.collection.forEach(function(l) {
+						// encode string and create a GLatLng object 
+						console.log(l);
+						var this_loc = locationParse(l.get("latLong")); 
+						var this_gloc = google.maps.LatLng(this_loc);
+						// compute the distance between this location and the search location
+						var dist = google.maps.geometry.spherical.computeDistanceBetween(search_loc, this_gloc);
+						console.log(dist);
+						if (dist < radius) {
+							matches.push(l)
+						};
+					});
+					console.log(matches);
+				}; 
+			};
+
+			doGeocoding(search_loc, this);
 		},
 
 		displayHouse: function(e) {
@@ -242,6 +317,7 @@ $(function() {
 			// set up the map with the tile layer and a layer to put markers
 			// in. 
 			var map = new OpenLayers.Map("mainmap");
+			//map.addControl(new OpenLayers.Control.MouseToolbar());
 			map.addLayer(new OpenLayers.Layer.OSM());
 			var markerLayer = new OpenLayers.Layer.Markers( "Markers" );
 			map.addLayer(markerLayer);
@@ -331,19 +407,30 @@ $(function() {
 // + fwd and back buttons still wonky.
 // + calling urls directly is a problem because houses collection is not yet populated. 
 // + new house submission event trigger now broken (event not being triggered properly)
-// newly added house is missing ID field when url is generated. 
-// fields with spaces are being b0rked (cf. name field)
-// change modernomad house model to add slug and rename summary to description
-// decide what to show on map if we render the /new page directly. 
-// house url should use url (vanity url?)
-// homeview: should be a call to action ("search!") while loading houses in
-//  the background. filtering the list using datatables should also filter the
-//  list of houses displayed on the map. 
-// include map for individual houses
-// map marker - different color for the location most recently submitted.
-// map markers should have basic house info and link
+// + newly added house is missing ID field when url is generated. 
+// + fields with spaces are being b0rked (cf. name field)
+// + decide what to show on map if we render the /new page directly. 
+
+// change modernomad house model 
+// - add slug 
+// - rename summary to description
+// - review suggestions from embassy peeps
+// house url should use slug 
+// homeview: 
+// - map on LHS; call to action ("Find Communities!") on RHS. 
+// - primary search on location. advanced options: other fields, radius. 
+// - ui autocomplete hooked up to api search (http://docs.jquery.com/UI/Autocomplete)
+// - map should update to reflect houses displayed in list. 
+// individual house listing
+// - show map (make this entirely contained in a popup/side div?)
+// - map in bg with overlapping info div?
+// - style
+// map 
+// - different color for the location most recently submitted.
+// - framed popups with house info
+// - custom icon 
 // form validation - required fields, url, email, 
-// bootstrap properly from server - first page of listings
+// bootstrap properly from server - first page of listings (depends what we want homepage to be)
 // include error callbacks where appropriate (to match success callbacks)
 // house edit - use django auth
 // order listings by date added? (options: most recent, nearby, within xx km of yy)
