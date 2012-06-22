@@ -19,7 +19,7 @@ $(function() {
 
 	/////////////////////// UTIL ////////////////////////
 	locationParse = function(locString) {
-		// returns a list [longitude, latitude] (in that order!)
+		// returns a list item of floats, [longitude, latitude] (in that order!)
 		ll = locString.split(",");
 		latitude = parseFloat(ll[0]);
 		longitude = parseFloat(ll[1]);
@@ -263,38 +263,43 @@ $(function() {
 			// the database model's address field. 
 			var search_loc = $('#input-location-search').val();
 			var radius = $('#radius-location-search').val();
+			radius = parseInt(radius)*1000; // distance calculation returns value in meters. 
 			console.log(search_loc);
 			console.log(radius);
 			console.log(this.collection.models);
 
 			// geocode the search location
-
-			doGeocoding = function(search_loc, that) {
-				var geocoder = new google.maps.Geocoder();
-				geocoder.geocode({'address': search_loc}, function(results, status) {
-					window.alert("geocode status: " + status);
+			that = this;
+			var geocoder = new google.maps.Geocoder();
+			geocoder.geocode({'address': search_loc}, function(results, status) {
+				if (status == google.maps.GeocoderStatus.OK) {
+					console.log("geocoding results for search location:");
+					get_loc_matches(results[0].geometry.location);
+				} else {
+					console.log("Error: Geocode was not successful: " + status);
+				}
+			});
+			
+			get_loc_matches = function(search_gloc) {
+				console.log("get_loc_matches: iterating over " + that.collection.length + "items");
+				matches = [];
+				that.collection.forEach(function(l) {
+					// encode string and create a GLatLng object 
+					// compute the distance between this location and the search location
+					var this_loc = locationParse(l.get("latLong")); 
+					console.log(this_loc);
+					var this_gloc = new google.maps.LatLng(this_loc[1], this_loc[0]);
+					console.log(this_gloc);
+					console.log(search_gloc);
+					var dist = google.maps.geometry.spherical.computeDistanceBetween(search_gloc, this_gloc);
+					console.log(dist);
+					if (dist < radius) {
+						matches.push(l)
+					};
 				});
-
-				get_loc_matches = function(search_gloc) {
-					matches = {};
-					console.log("get_loc_matches: iterating over " + that.collection.length + "items");
-					that.collection.forEach(function(l) {
-						// encode string and create a GLatLng object 
-						console.log(l);
-						var this_loc = locationParse(l.get("latLong")); 
-						var this_gloc = google.maps.LatLng(this_loc);
-						// compute the distance between this location and the search location
-						var dist = google.maps.geometry.spherical.computeDistanceBetween(search_loc, this_gloc);
-						console.log(dist);
-						if (dist < radius) {
-							matches.push(l)
-						};
-					});
-					console.log(matches);
-				}; 
-			};
-
-			doGeocoding(search_loc, this);
+				console.log(matches);
+			}; 
+			e.preventDefault();
 		},
 
 		displayHouse: function(e) {
