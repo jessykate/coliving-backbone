@@ -1,21 +1,8 @@
 $(function() {
 
-	// boostrap a list of existing houses. 
-	// TODO (jessykate) retrieve real list from server
-	/*
-	bootstrapHouses = [
-		{address: "21677 rainbow drive, cupertino, ca, 95014", bedrooms: 8, name:"Rainbow Mansion", 
-			contact: "zwexlerberon@gmail.com", website: "http://rainbowmansion.com", latLong: "37.300079,-122.05498899999998",
-			accommodations:true, events: true, description: "a warm and welcoming community in the south bay full of passionate and driven community builders."}, 
-		{address: "775 14th Street, san francisco, ca, 94114", bedrooms: 13, name:"The Elements", 
-			contact: "corwinh@gmail.com", latLong: "37.7675567,-122.4305766"}
-	];
-
-	// fake the saving while we don't have a persistence layer. 
-	//Backbone.sync = function(method, model, options) {
-	//	return 0;
-	//};
-	*/
+	/////////////////////// SETTINGS ////////////////////////
+	API_BASE = "http://localhost:8080/api/v1/";
+	MEDIA_BASE = "http://localhost:8989/";
 
 	/////////////////////// UTIL ////////////////////////
 	locationParse = function(locString) {
@@ -27,15 +14,33 @@ $(function() {
 		return loc;
 	};
 
+	registerInputAutoComplete = function(div_id) {
+		// register a location autocomplete function on the search box.
+		var location_search_field = document.getElementById(div_id);
+		var options = {
+			types: ['geocode']
+		}
+		var autocomplete = new google.maps.places.Autocomplete(location_search_field, options);
+	};
+
+	geoIcon = function() {
+		var size = new OpenLayers.Size(21,25);
+		var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
+		console.log(MEDIA_BASE + 'img/noun_project_2847.png');
+		var icon = new OpenLayers.Icon(MEDIA_BASE +'img/noun_project_2847.svg',size,offset);
+		icon.setOpacity(0.6);
+		return icon;
+	};
+
 	////////////// MODELS & COLLECTIONS /////////////////
 
 	window.House = Backbone.Model.extend({
 		initialize: function() { },
 		url: function() { 
 			if (this.isNew()) {
-				return "http://localhost:8080/api/v1/houses/?format=json";
+				return API_BASE + "houses/?format=json";
 			} else {
-				return "http://localhost:8080/api/v1/houses/" + this.id + "?format=json";
+				return API_BASE + "houses/" + this.id + "?format=json";
 			}
 		},
 		geocodeAddr: function() {
@@ -58,8 +63,22 @@ $(function() {
 
 	window.Houses = Backbone.Collection.extend({
 		model: House,
+		initialize: function(models, options) {
+			if (options && options.subset != "undefined") {
+				this.subset = true;
+			}
+		},
 		// XXX (jks) careful with pagination and limits once list gets long
-		url: "http://localhost:8080/api/v1/houses/?format=json",
+		url: function() {
+			if (this.subset == true) {
+				ids = this.pluck("id");
+				ids_str = ids.join(";");
+				return API_BASE + "houses/set/" + ids_str +"/?format=json"
+			} else {
+				return API_BASE + "houses/?format=json";
+			}
+		},
+
 		parse: function(response) {
 			/* from the backbone docs: "The function is passed the raw response
 			 * object, and should return the array of model attributes to be
@@ -85,10 +104,7 @@ $(function() {
 
 	/////////////////////// VIEWS ////////////////////////
 
-	// houses needs to be declared before the objects below refer to it, since
-	// javascript is evaluated immediately. 
-	// XXX (jessykate) why does this not work when using "this"?
-	window.houses = new Houses();
+	window.locations = new Locations();
 
 	window.HouseView = Backbone.View.extend({
 		initialize: function() {
@@ -109,7 +125,7 @@ $(function() {
 
 		initialize: function(options) {
 			this.model.on('change:latLong', this.locationMap, this);
-			this.model.on('sync', this.returnHome, true);
+			//this.model.on('sync', this.displayHouse, this);
 			this.template = _.template($("#signup-template").html());
 			_.bindAll(this, 'render', 'formSubmit', 'locationMap');
 		},
@@ -130,12 +146,7 @@ $(function() {
 			var that = this;
 			console.log(that.model);
 
-			// register a location autocomplete function on the address input.
-			var location_search_field = document.getElementById('form-address');
-			var options = {
-				types: ['geocode']
-			}
-			var autocomplete = new google.maps.places.Autocomplete(location_search_field, options);
+			registerInputAutoComplete('form-address');
 
 			// also register a keyup function that, after a brief delay, will
 			// geocode the address contained in the text field. 
@@ -171,7 +182,8 @@ $(function() {
 				new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
 				new OpenLayers.Projection("EPSG:900913")
 			);
-			markerLayer.addMarker(new OpenLayers.Marker(lonlat));
+
+			markerLayer.addMarker(new OpenLayers.Marker(lonlat, geoIcon()))
 
 			map.updateCenter = function(loc, zoom) {
 				var fromProjection = new OpenLayers.Projection("EPSG:4326");   // Transform from WGS 1984
@@ -190,12 +202,18 @@ $(function() {
 			console.log("in formSubmit");
 			houseAttr = this.houseFromForm(e);
 			console.log(houseAttr);
-			/* saving the verified model triggers the 'add' event on the model,
-			 * which in turn calls app.navigate.  otherwise the create() call
-			 * might not be done by the time navigate is called.  
-			 */
-			this.model.set(houseAttr);
-			this.model.save(); 
+			//this.model.set(houseAttr);
+			// save triggers 'sync' which in turn triggers the 'add' event on
+			// the model.
+			this.model.save(houseAttr, {success: function(model, response) {
+				console.log("sync succeeded, redirecting to house profile.");
+				console.log(model);
+				path = "/house/"+ model.id;
+				console.log(path);
+				app.navigate(path, {trigger:true});
+			}, error: function(model, response) {
+				console.log("error in saving object: " + response);
+			}, wait:true}); 
 			e.preventDefault();
 		},
 
@@ -210,12 +228,15 @@ $(function() {
 				}
 			});
 			return houseAttr;
-		},
-
-		returnHome: function() {
-			console.log("sync event triggered, returning to Home View");
-			app.navigate("/", {trigger:true});
 		}
+
+		/*
+		displayHouse: function() {
+			console.log("sync event triggered, redirecting to house profile.");
+			console.log(this.model);
+			path = "/house/"+ this.model.id
+			app.navigate(path, {trigger:true});
+		}*/
 
 	});
 
@@ -226,34 +247,32 @@ $(function() {
 		},
 	
 		initialize: function(options) {
-			this.collection = new Locations();
+			// set fetch() to trigger the reset event and render the view. 
+			this.collection.on('reset', this.render, this);
 			this.collection.fetch();
-
-			//houses.on('reset', this.render, this);
-			this.template = _.template($("#listings-template").html());
 			_.bindAll(this, 'render', 'newHouseForm', 'renderMap');
-			this.render();
-
 		},
 
 		render: function() {
-			$(this.el).html(this.template({houses: this.collection.toJSON()}));
+			var tmpl_str = $("#search-banner-template").html() + $("#map-template").html()
+			var tmpl = _.template(tmpl_str);
+			$(this.el).html(tmpl({houses: this.collection.toJSON()}));
+			registerInputAutoComplete('input-location-search');
+			this.renderMap();
+
+		},
+
+		renderList: function() {
+			this.render();
+			var tmpl_str = $("#listings-template").html();
+			var tmpl = _.template(tmpl_str);
+			$(this.el).append(tmpl({houses: this.collection.toJSON()}));
 			console.log("loading data tables plugin");
 			$('#house-listing-table').dataTable();
 			$('tr.row-link').hover( function() {
 				$(this).toggleClass('hover');
 			});
-			// XXX initial renderMap should just be a bg, no objects (since
-			// they're not loaded yet). 
-			this.renderMap();
-
-			// register a location autocomplete function on the search box.
-			var location_search_field = document.getElementById('input-location-search');
-			var options = {
-				types: ['geocode']
-			}
-			var autocomplete = new google.maps.places.Autocomplete(location_search_field, options);
-
+			registerInputAutoComplete('input-location-search');
 			return this;
 		},
 
@@ -261,20 +280,32 @@ $(function() {
 			console.log("in doSearch");
 			// pull out the value of the input field, and do a text search on
 			// the database model's address field. 
-			var search_loc = $('#input-location-search').val();
+			this.search_loc = $('#input-location-search').val();
 			var radius = $('#radius-location-search').val();
-			radius = parseInt(radius)*1000; // distance calculation returns value in meters. 
-			console.log(search_loc);
-			console.log(radius);
-			console.log(this.collection.models);
-
+			this.radius = parseInt(radius)*1000; // distance calculation returns value in meters. 
+			
 			// geocode the search location
 			that = this;
+			var matches = [];
 			var geocoder = new google.maps.Geocoder();
-			geocoder.geocode({'address': search_loc}, function(results, status) {
+			geocoder.geocode({'address': this.search_loc}, function(results, status) {
 				if (status == google.maps.GeocoderStatus.OK) {
 					console.log("geocoding results for search location:");
-					get_loc_matches(results[0].geometry.location);
+					matches = get_loc_matches(results[0].geometry.location);
+					console.log("matches were:");
+					console.log(matches);
+					//populate a collection with the matched items, display them on the map. 
+					// get the list of ids
+					// make a list of houses with those ids
+					that.collection = new Houses(matches, {subset: true});
+					var ids = that.collection.pluck("id");
+					console.log("ids matched were: " + ids);
+					// fetch will actually reset the collection. since subset
+					// was set to 'true', only models with the existing ids
+					// will be fetched. reset event will be triggered. 
+					that.collection.fetch({success: function() {
+						that.renderList();
+					}});
 				} else {
 					console.log("Error: Geocode was not successful: " + status);
 				}
@@ -282,23 +313,22 @@ $(function() {
 			
 			get_loc_matches = function(search_gloc) {
 				console.log("get_loc_matches: iterating over " + that.collection.length + "items");
-				matches = [];
 				that.collection.forEach(function(l) {
 					// encode string and create a GLatLng object 
 					// compute the distance between this location and the search location
 					var this_loc = locationParse(l.get("latLong")); 
-					console.log(this_loc);
 					var this_gloc = new google.maps.LatLng(this_loc[1], this_loc[0]);
-					console.log(this_gloc);
-					console.log(search_gloc);
 					var dist = google.maps.geometry.spherical.computeDistanceBetween(search_gloc, this_gloc);
 					console.log(dist);
-					if (dist < radius) {
+					if (dist < that.radius) {
 						matches.push(l)
 					};
 				});
+				console.log("matches were:");
 				console.log(matches);
+				return matches;
 			}; 
+
 			e.preventDefault();
 		},
 
@@ -334,7 +364,8 @@ $(function() {
 					new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
 					new OpenLayers.Projection("EPSG:900913")
 				);
-				markerLayer.addMarker(new OpenLayers.Marker(lonlat));
+				
+				markerLayer.addMarker(new OpenLayers.Marker(lonlat, geoIcon()));
 			});
 
 			map.updateCenter = function(locStr, zoom, that) {
@@ -370,10 +401,7 @@ $(function() {
 		
 		// view for searching and displaying filtered lists of houses. 
 		home: function() {
-			// TODO bootstrap properly
-			// fetch() triggers the reset event, which renders the view. 
-			var appview = new AppView({el:$("#content"), collection: houses});
-			houses.fetch();
+			var appview = new AppView({el:$("#content"), collection: locations});
 		},
 
 		// view for creating and submitting (and eventually editing) a new
@@ -415,17 +443,28 @@ $(function() {
 // + newly added house is missing ID field when url is generated. 
 // + fields with spaces are being b0rked (cf. name field)
 // + decide what to show on map if we render the /new page directly. 
-
-// change modernomad house model 
-// - add slug 
-// - rename summary to description
-// - review suggestions from embassy peeps
-// house url should use slug 
+// + change modernomad house model 
+// + - add slug 
+// + - rename summary to description
+// + - review suggestions from embassy peeps
 // homeview: 
-// - map on LHS; call to action ("Find Communities!") on RHS. 
-// - primary search on location. advanced options: other fields, radius. 
-// - ui autocomplete hooked up to api search (http://docs.jquery.com/UI/Autocomplete)
-// - map should update to reflect houses displayed in list. 
+// + - call to action ("Find Communities!") on RHS. 
+// + - primary search on location. 
+// + - ui autocomplete hooked up to api search (http://docs.jquery.com/UI/Autocomplete)
+// + - map should update to reflect houses displayed in list. 
+// + new house submit should redirect to house view page
+// + home view - show location on map only. 
+// + search bar should execute on enter
+
+// do we want to support 'back' button for searches? (probably... blargh)
+// map bounds should match location and radius of search
+// "locations" collection should actually be a collection of summary-house objects.
+// custom icon for map marker 
+// popups for map markers
+// backbone form should include new fields (slug and mission?)
+// house url should use slug 
+// advanced options: other fields, radius.
+// site credits: http://thenounproject.com/noun/map-marker/#icon-No2847
 // individual house listing
 // - show map (make this entirely contained in a popup/side div?)
 // - map in bg with overlapping info div?
@@ -442,4 +481,4 @@ $(function() {
 // open layers form control - make less fugly
 // recapcha for new house submission
 // email reports
-// address field search-ahead?
+// + address field search-ahead?
