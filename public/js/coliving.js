@@ -131,7 +131,7 @@ $(function() {
 			
 			// set title
 			if (this.get("name")) {
-				html += ( "<h2><a href='/house/" + this.id + "'>" + this.get("name") + "</a></h2>" );
+				html += ( "<h2><a class='house-link' href='/house/" + this.id + "'>" + this.get("name") + "</a></h2>" );
 				html += ( "<h3>" + this.get("address") + "</h3>" );
 			} else {
 				html += ( "<h2>" + this.get("address") + "</h2>" );
@@ -320,15 +320,6 @@ $(function() {
 			});
 			return houseAttr;
 		}
-
-		/*
-		displayHouse: function() {
-			console.log("sync event triggered, redirecting to house profile.");
-			console.log(this.model);
-			path = "/house/"+ this.model.id
-			app.navigate(path, {trigger:true});
-		}*/
-
 	});
 
 	// populated when the first fetch takes place. 
@@ -337,7 +328,7 @@ $(function() {
 	window.AppView = Backbone.View.extend({
 		events: {'click #add-house': 'newHouseForm',
 			'click #submit-location-search': 'doSearch',
-			'click .row-link': 'displayHouse'
+			'click .house-link': 'displayHouse'
 		},
 	
 		initialize: function(options) {
@@ -485,6 +476,7 @@ $(function() {
 			map.addLayer(markerLayer);
 
 			//var locations = this.collection.pluck("latLong");
+			that = this;
 			this.collection.forEach(function(house) {
 				var ll = house.get("latLong");
 				loc = locationParse(ll);
@@ -507,6 +499,11 @@ $(function() {
 						this.popup = popup;
 						map.addPopup(this.popup);
 						this.popup.show();
+						// prevent the default behaviour on new links
+						$("a.house-link").click(function(e) {
+							e.preventDefault();
+							app.navigate("/house/"+ house.id, {trigger:true});
+						});
 					} else {
 						this.popup.toggle();
 					}
@@ -591,21 +588,22 @@ $(function() {
 // + map bounds should match location and radius of search
 // + "locations" collection should actually be a collection of summary-house objects.
 // + popups for map markers
+// + e.preventDefault() on link in map popup, and on "new" link 
 
-// e.preventDefault() on link in map popup
-// push state for searches 
-// shouldn't be able to zoom out past max extent in maps (confusing since the
-//   other results aren't there - or, keep them there, but slower map rendering). 
 // backbone form should include new fields (slug and mission?)
+// push state for searches 
+// - hitting back button from individual house view should show listings again
 // in processing search results, empty search results should display a notice
 //   and (obviously) not execute the fetch. 
 // massive radius b0rks the search results map
 // house url should use slug 
-// site credits: http://thenounproject.com/noun/map-marker/#icon-No2847
 // individual house listing
 // - show map (make this entirely contained in a popup/side div?)
 // - map in bg with overlapping info div?
 // - style
+
+// map zoom in/out should trigger a new search?
+// site credits: http://thenounproject.com/noun/map-marker/#icon-No2847
 // form validation - required fields, url, email, 
 // bootstrap properly from server - first page of listings (depends what we want homepage to be)
 // include error callbacks where appropriate (to match success callbacks)

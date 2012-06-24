@@ -2,6 +2,7 @@
     <head>                                                                                                                                                     
         <title>CoLiving.org</title>
 		<link href="css/bootstrap.css" rel="stylesheet">
+		<link href="css/bootstrap-responsive.css" rel="stylesheet">
         <link rel="stylesheet" href="css/style.css" />
 
 		<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
@@ -10,7 +11,8 @@
 		<![endif]-->
 
         <script type="text/template" id="signup-template">
-			<div id="signup-form">
+			<div class="container">
+				<div id="signup-form"> 
 				<form id="house-form">
 					<!-- required -->
 					<div class="form-input">
@@ -53,69 +55,8 @@
 					<input type="submit" id="form-submit">
 				</form>
 			</div>
-			<div id="house-map">house map</div>
+			<div id="house-map"></div>
 			<div class="clear"></div>
-		</script>
-
-        <script type="text/template" id="edit-template">
-			<div class="house-listing">
-
-				<h2>Check the location on the map and the fields below. Does everything look ok?</h2>
-				<div id="signup-form">
-					<form id="house-form">
-						<!-- required -->
-						<div class="form-input">
-							<h2>Required</h2>
-							<label>House Address</label>
-							<input id="form-address" name="address" type="text" value="<%= address %>" required>
-						</div>
-						<div class="form-input">
-							<label>Number of Bedrooms</label>
-							<input id="form-rooms" name="rooms" type="number" value="<%= rooms %>" required>
-						</div>
-						<input type="hidden" name="latLong" value="<%= latLong %>">
-
-						<div id="form-fields-optional">
-							<h2>Optional</h2>
-							<div class="form-input">
-								<label>House Name</label>
-								<input id="form-name" name="name" type="text" 
-									<% if (typeof(name) != "undefined") { %> value=<%= name %> <% } else { %> placeholder="House Name" <% } %>
-								>
-							</div>
-							<div class="form-input">
-								<label>House Contact (email address) (Kept private)</label>
-								<input id="form-contact" name="contact" type="email" 
-									<% if (typeof(contact) != "undefined") { %> value=<%= contact %> <% } else { %> placeholder="you@example.com" <% } %>
-								>
-							</div>
-							<div class="form-input">
-								<label>Tell us a bit about your house and its culture</label>
-								<textarea id="form-description" name="description" cols="50" rows="10">
-									<% if (typeof(description) != "undefined") { %> value=<%= description %> <% } %>
-								</textarea>
-							</div>
-							<div class="form-input">
-								<label>House website</label>
-								<input id="form-website" name="website" type="text" 
-									<% if (typeof(website) != "undefined") { %> value=<%= website %> <% } else { %> placeholder="http://example.com" <% } %>
-							</div>
-							<div class="form-input">
-								<label>House offers guest accommodations (crash space, guest rooms)</label>
-								<input id="form-accommodations" name="accommodations" value="accommodations" type="checkbox"
-									<% if (typeof(accommodations) != "undefined") { %> checked <% } %> 
-								> 
-							</div>
-							<div class="form-input">
-								<label>House has event/co-working space</label>
-								<input id="form-events" name="events" value="events" type="checkbox"
-									<% if (typeof(events) != "undefined") { %> checked <% } %> 
-								> 
-							</div>
-						</div><!-- end optional fields -->
-						<input type="Submit" value="Confirm" id="form-confirm">
-					</form>
-				</div>
 			</div>
 		</script>
 
@@ -124,21 +65,28 @@
 				<form>
 				<div class="form-wrapper">
 					<h2>Search for (awesome co-living) Houses!</h2>
-					<span> <input type="text" id="input-location-search" placeholder="location"> </span>
+					<input type="text" id="input-location-search" placeholder="location">
 					<h3>Radius (km): </h3>
-					<span> <input type="number" id="radius-location-search" value="<%= radius %>">
-					<span> <input type="submit" id="submit-location-search" value="Find!">
+					<input type="number" id="radius-location-search" value="<%= radius %>">
+					<input type="submit" class="btn btn-inverse" id="submit-location-search" value="Find">
 				</div>
 				</form>
+				<div>
+					<h3>(Or <a id="add-house" href="/new">Submit</a> Your own)</h3>
+				</div>
 			</div>
 		</script>
 
         <script type="text/template" id="map-template">
-            <div id="mainmap"></div>
+			<div id="main-content">
+				<div class="hero-unit">
+					<div id="mainmap"></div>
+				</div>
+			</div>
 		</script>
 
         <script type="text/template" id="listings-template">
-			<div>
+			<div class="container">
 				<table id="house-listing-table">
 					<thead><tr>
 						<th>Address</th>
@@ -160,9 +108,6 @@
 					<% }); %>
 					</tbody>
 				</table>
-				<div id="action-add">
-					<input type="submit" id="add-house" value="Add your House">
-				</div>
 			</div>
 		</script>
 
@@ -176,10 +121,8 @@
 
     <body>
 
-		<div class="container">
-			<div id="content">
-				<!-- populated by backbone views -->	
-			</div>
+		<div class="" id="content">
+			<!-- populated by backbone views -->	
 		</div>
 
 
@@ -191,10 +134,10 @@
         <script type="text/javascript" src="/js/vendor/underscore.js"></script>
         <script type="text/javascript" src="/js/vendor/json2.js"></script>
         <script type="text/javascript" src="/js/vendor/backbone.js"></script>
+		<script type="text/javascript" src="/js/vendor/jquery.dataTables.min.js"></script>
 		<script type="text/javascript" src="http://www.openlayers.org/api/OpenLayers.js"></script>
-		<script type="text/javascript" src="js/vendor/jquery.dataTables.min.js"></script>
 		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCOyvXiCkksUfYi-1JgydDfXLZAIWZ9xv4&sensor=false&libraries=geometry,places"></script>
-        <script type="text/javascript" src="/js/bootstrap.js"></script>
+        <script type="text/javascript" src="/js/vendor/bootstrap.js"></script>
         <script type="text/javascript" src="/js/coliving.js"></script>
     </body>
 </html>
