@@ -1,7 +1,13 @@
 <html>
     <head>                                                                                                                                                     
         <title>CoLiving.org</title>
+		<link href="css/bootstrap.css" rel="stylesheet">
         <link rel="stylesheet" href="css/style.css" />
+
+		<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+		<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
 
         <script type="text/template" id="signup-template">
 			<div id="signup-form">
@@ -120,7 +126,7 @@
 					<h2>Search for (awesome co-living) Houses!</h2>
 					<span> <input type="text" id="input-location-search" placeholder="location"> </span>
 					<h3>Radius (km): </h3>
-					<span> <input type="number" id="radius-location-search" value="50">
+					<span> <input type="number" id="radius-location-search" value="<%= radius %>">
 					<span> <input type="submit" id="submit-location-search" value="Find!">
 				</div>
 				</form>
@@ -164,16 +170,18 @@
 			<% _.each(house, function(field) { %>
 				<div> <%= field %> </div>
 			<% }); %>
-
-		
 		</script>
 
     </head>
 
     <body>
-        <div id="content">
-			<!-- this gets populated by backbone views -->	
-        </div>
+
+		<div class="container">
+			<div id="content">
+				<!-- populated by backbone views -->	
+			</div>
+		</div>
+
 
 		<!-- javascript includes must appear AFTER the template definitions and
 		anything else the javascript code refers to, or they won't be defined
@@ -186,6 +194,7 @@
 		<script type="text/javascript" src="http://www.openlayers.org/api/OpenLayers.js"></script>
 		<script type="text/javascript" src="js/vendor/jquery.dataTables.min.js"></script>
 		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCOyvXiCkksUfYi-1JgydDfXLZAIWZ9xv4&sensor=false&libraries=geometry,places"></script>
+        <script type="text/javascript" src="/js/bootstrap.js"></script>
         <script type="text/javascript" src="/js/coliving.js"></script>
     </body>
 </html>

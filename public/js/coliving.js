@@ -26,11 +26,77 @@ $(function() {
 	geoIcon = function() {
 		var size = new OpenLayers.Size(21,25);
 		var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
-		console.log(MEDIA_BASE + 'img/noun_project_2847.png');
 		var icon = new OpenLayers.Icon(MEDIA_BASE +'img/noun_project_2847.svg',size,offset);
 		icon.setOpacity(0.6);
 		return icon;
 	};
+
+	getCustomControls = function() {
+		var controls = [
+			new OpenLayers.Control.Attribution(),
+			new OpenLayers.Control.TouchNavigation({
+				dragPanOptions: {
+					enableKinetic: true
+				}
+			}),
+			//new OpenLayers.Control.ZoomIn(),
+			//new OpenLayers.Control.ZoomOut()
+			new OpenLayers.Control.ZoomPanel()
+		];
+		return controls;
+	};
+
+	// object literal. exists outside the app view since a new app view object
+	// is created each time the view is loaded. (could change that instead i
+	// suppose) 
+	ActiveSearch = function() {
+		this.center= null,
+		// serves as the default search radius
+		this.radius= 20,
+		// radius in m
+		this.radius_m = 20000,
+		this.bounds= null,
+		this.search_string = "",
+		this.update= function(search_gloc, radius, search_str) {
+			// this is probably a *google* maps latLong object (hence
+			// the g). 
+			this.center = search_gloc; 
+			this.search_string = search_str;
+			// radius is in meters
+			this.radius = radius; 
+			this.radius_m = this.radius*1000.0;
+			this.computeBounds();
+		},
+		this.computeBounds= function() {
+			// informal bounds caculation: http://stackoverflow.com/questions/
+			// 1253499/simple-calculations-for-working-with-lat-lon-km-distance
+			// Latitude: 1 deg = 110.54 km ==> 110540m. 
+			//	ie radius(m)/110540 = num degrees
+			// Longitude: 1 deg = 111.320*cos(latitude) km
+			//	ie radius(m)/(113.320*cos(lat)*1000 m) = deg
+			var m_per_deg_lat = 110540.0;
+			var m_per_deg_long = 113.320*Math.cos(this.center.lat())*1000.0;
+			var delta_lat =  this.radius_m/m_per_deg_lat;					
+			var delta_lon = this.radius_m/m_per_deg_long
+
+			console.log(this.center);
+			console.log(delta_lon);
+			console.log(delta_lat);
+
+			this.bounds = new OpenLayers.Bounds();
+			this.bounds.left = this.center.lng() - delta_lon;
+			this.bounds.right = this.center.lng() + delta_lon;
+			this.bounds.top = this.center.lat() + delta_lat;
+			this.bounds.bottom = this.center.lat() - delta_lon;
+			console.log(this.bounds);
+		},
+		this.getBounds= function() {
+			// need a NEW object, not just the existing one (or all refs to
+			// bounds will point to the same object). 
+			return this.bounds.clone();
+		}
+	};
+	activeSearch = new ActiveSearch();
 
 	////////////// MODELS & COLLECTIONS /////////////////
 
@@ -58,6 +124,28 @@ $(function() {
 					console.log("Error: Geocode was not successful: " + status);
 				}
 			});
+		},
+
+		htmlSummary: function() {
+			var html = "";
+			
+			// set title
+			if (this.get("name")) {
+				html += ( "<h2><a href='/house/" + this.id + "'>" + this.get("name") + "</a></h2>" );
+				html += ( "<h3>" + this.get("address") + "</h3>" );
+			} else {
+				html += ( "<h2>" + this.get("address") + "</h2>" );
+			}
+
+			// set contents
+			html += ("<div>Rooms: " + this.get("rooms") + "</div>" );
+			if (this.get("website")) {
+				html += ("<div>Website: <a href='" + this.get("website") + "' target='_blank'>Visit Website</a></div>" );
+			}
+			if (this.get("description")) {
+				html += ("<div>" + this.get("description") + "</div>" );
+			}
+			return html;
 		}
 	});
 
@@ -65,7 +153,7 @@ $(function() {
 		model: House,
 		initialize: function(models, options) {
 			if (options && options.subset != "undefined") {
-				this.subset = true;
+				this.subset = options.subset;
 			}
 		},
 		// XXX (jks) careful with pagination and limits once list gets long
@@ -92,8 +180,8 @@ $(function() {
 		}
 	});
 
+	/*
 	window.Location = Backbone.Model.extend({});
-
 	window.Locations = Backbone.Collection.extend({
 		model: Location,
 		url: "http://localhost:8080/api/v1/locations/?format=json",
@@ -101,10 +189,11 @@ $(function() {
 			return response.objects;
 		}
 	});
+	*/
 
 	/////////////////////// VIEWS ////////////////////////
 
-	window.locations = new Locations();
+	window.houses = new Houses();
 
 	window.HouseView = Backbone.View.extend({
 		initialize: function() {
@@ -170,7 +259,9 @@ $(function() {
 			// set up the map with the tile layer and a layer to put markers
 			// in. 
 			$("#house-map").html("");
-			var map = new OpenLayers.Map("house-map");
+			var map = new OpenLayers.Map({div: "house-map", controls: getCustomControls()});
+			var panel = new OpenLayers.Control.Panel();
+			panel.addControls(getCustomControls());
 			map.addLayer(new OpenLayers.Layer.OSM());
 			var markerLayer = new OpenLayers.Layer.Markers( "Markers" );
 			map.addLayer(markerLayer);
@@ -240,6 +331,9 @@ $(function() {
 
 	});
 
+	// populated when the first fetch takes place. 
+	all_houses = [];
+
 	window.AppView = Backbone.View.extend({
 		events: {'click #add-house': 'newHouseForm',
 			'click #submit-location-search': 'doSearch',
@@ -249,24 +343,29 @@ $(function() {
 		initialize: function(options) {
 			// set fetch() to trigger the reset event and render the view. 
 			this.collection.on('reset', this.render, this);
-			this.collection.fetch();
+			// save the list of all houses so we can use it for searches
+			this.collection.fetch({success: function(collection, response) {
+				all_houses = collection.toJSON();
+			}});
 			_.bindAll(this, 'render', 'newHouseForm', 'renderMap');
 		},
 
 		render: function() {
 			var tmpl_str = $("#search-banner-template").html() + $("#map-template").html()
 			var tmpl = _.template(tmpl_str);
-			$(this.el).html(tmpl({houses: this.collection.toJSON()}));
+			$(this.el).html(tmpl({houses: this.collection.toJSON(), 
+				search_string: activeSearch.search_string, 
+				radius: activeSearch.radius
+			}));
 			registerInputAutoComplete('input-location-search');
 			this.renderMap();
-
 		},
 
-		renderList: function() {
+		renderList: function(search_results) {
 			this.render();
 			var tmpl_str = $("#listings-template").html();
 			var tmpl = _.template(tmpl_str);
-			$(this.el).append(tmpl({houses: this.collection.toJSON()}));
+			$(this.el).append(tmpl({houses: search_results.toJSON()}));
 			console.log("loading data tables plugin");
 			$('#house-listing-table').dataTable();
 			$('tr.row-link').hover( function() {
@@ -282,8 +381,8 @@ $(function() {
 			// the database model's address field. 
 			this.search_loc = $('#input-location-search').val();
 			var radius = $('#radius-location-search').val();
-			this.radius = parseInt(radius)*1000; // distance calculation returns value in meters. 
-			
+			this.radius = parseInt(radius); // value in km
+
 			// geocode the search location
 			that = this;
 			var matches = [];
@@ -291,27 +390,30 @@ $(function() {
 			geocoder.geocode({'address': this.search_loc}, function(results, status) {
 				if (status == google.maps.GeocoderStatus.OK) {
 					console.log("geocoding results for search location:");
-					matches = get_loc_matches(results[0].geometry.location);
+					var search_gloc = results[0].geometry.location;
+					matches = get_loc_matches(search_gloc);
 					console.log("matches were:");
 					console.log(matches);
-					//populate a collection with the matched items, display them on the map. 
-					// get the list of ids
-					// make a list of houses with those ids
-					that.collection = new Houses(matches, {subset: true});
-					var ids = that.collection.pluck("id");
-					console.log("ids matched were: " + ids);
-					// fetch will actually reset the collection. since subset
-					// was set to 'true', only models with the existing ids
-					// will be fetched. reset event will be triggered. 
-					that.collection.fetch({success: function() {
-						that.renderList();
-					}});
+					// populate a collection with the matched items, display
+					// them on the map. 
+					
+					search_results = new Houses(matches);
+					console.log(search_results.length + " matches found.");
+
+					// save info about the location and bounds of the active search.
+					activeSearch.update(search_gloc, that.radius, this.search_loc ); 
+					that.renderList(search_results);
+			
 				} else {
 					console.log("Error: Geocode was not successful: " + status);
 				}
 			});
 			
 			get_loc_matches = function(search_gloc) {
+				// ensure the collection has all known locations before doing
+				// the search (XXX this could be a local cache of the known
+				// locations...)
+				that.collection.reset(all_houses);
 				console.log("get_loc_matches: iterating over " + that.collection.length + "items");
 				that.collection.forEach(function(l) {
 					// encode string and create a GLatLng object 
@@ -319,8 +421,7 @@ $(function() {
 					var this_loc = locationParse(l.get("latLong")); 
 					var this_gloc = new google.maps.LatLng(this_loc[1], this_loc[0]);
 					var dist = google.maps.geometry.spherical.computeDistanceBetween(search_gloc, this_gloc);
-					console.log(dist);
-					if (dist < that.radius) {
+					if (dist < that.radius*1000.0) {
 						matches.push(l)
 					};
 				});
@@ -349,39 +450,70 @@ $(function() {
 		renderMap: function() {
 			console.log("in renderMap(). processing " + this.collection.length + " items.");
 
-			// set up the map with the tile layer and a layer to put markers
-			// in. 
-			var map = new OpenLayers.Map("mainmap");
-			//map.addControl(new OpenLayers.Control.MouseToolbar());
-			map.addLayer(new OpenLayers.Layer.OSM());
-			var markerLayer = new OpenLayers.Layer.Markers( "Markers" );
-			map.addLayer(markerLayer);
+			var map = new OpenLayers.Map({div: "mainmap", controls: getCustomControls()});
 
-			var locations = this.collection.pluck("latLong");
-			locations.forEach(function(ll) {
-				loc = locationParse(ll);
-				var lonlat = new OpenLayers.LonLat(loc[0], loc[1]).transform(
-					new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
-					new OpenLayers.Projection("EPSG:900913")
-				);
-				
-				markerLayer.addMarker(new OpenLayers.Marker(lonlat, geoIcon()));
-			});
-
+			var fromProjection = new OpenLayers.Projection("EPSG:4326");   // Transform from WGS 1984
+			var toProjection = new OpenLayers.Projection("EPSG:900913"); // to Spherical Mercator Projection
 			map.updateCenter = function(locStr, zoom, that) {
-				var fromProjection = new OpenLayers.Projection("EPSG:4326");   // Transform from WGS 1984
-				var toProjection = new OpenLayers.Projection("EPSG:900913"); // to Spherical Mercator Projection
-				// center the map somewhere in the middle of the world
 				loc = locationParse(locStr)
 				var mapCenter = new OpenLayers.LonLat(loc[0], loc[1]).transform( fromProjection, toProjection);
 				// forces the tiles of the map to render. 
 				this.setCenter(mapCenter, zoom);
 			}
 
-			var zoom = 2;
-			map.updateCenter("33.137551, -163.476563", zoom, this);
-		},
+			// if there's an active search, restrict the bounds of the map to
+			// the search area. else show the whole world.
+			if (activeSearch.bounds != null) {
+				console.log("processing bounds of active search");
+				var extent = activeSearch.getBounds().transform(fromProjection, toProjection);
+				map.restrictedExtent = extent;
+				map.addLayer(new OpenLayers.Layer.OSM({
+					'maxExtent': extent,
+					'maxResolution': "auto"
+				}));
+				map.zoomToExtent(extent);
 
+			} else {
+				console.log("no active search");
+				map.addLayer(new OpenLayers.Layer.OSM());
+				var zoom = 2;
+				// location chosen empirically
+				map.updateCenter("33.137551, -163.476563", zoom, this);
+			}
+
+			var markerLayer = new OpenLayers.Layer.Markers( "Markers" );
+			map.addLayer(markerLayer);
+
+			//var locations = this.collection.pluck("latLong");
+			this.collection.forEach(function(house) {
+				var ll = house.get("latLong");
+				loc = locationParse(ll);
+				var lonlat = new OpenLayers.LonLat(loc[0], loc[1]).transform(
+					new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+					new OpenLayers.Projection("EPSG:900913")
+				);
+				var marker = new OpenLayers.Marker(lonlat, geoIcon());
+				var popup = new OpenLayers.Popup.FramedCloud("house-popup", 
+					marker.lonlat,
+					new OpenLayers.Size(200, 200),
+					house.htmlSummary(),
+					null, true
+				);
+				popup.maxSize = new OpenLayers.Size(200,300);
+				//popup.overflow: true;
+
+				marker.events.register("click", marker, function(e) { 
+					if (this.popup == null) {
+						this.popup = popup;
+						map.addPopup(this.popup);
+						this.popup.show();
+					} else {
+						this.popup.toggle();
+					}
+				});
+				markerLayer.addMarker(marker);
+			});
+		},
 	});
 
 	/////////////////////// ROUTER ////////////////////////
@@ -401,7 +533,7 @@ $(function() {
 		
 		// view for searching and displaying filtered lists of houses. 
 		home: function() {
-			var appview = new AppView({el:$("#content"), collection: locations});
+			var appview = new AppView({el:$("#content"), collection: houses});
 		},
 
 		// view for creating and submitting (and eventually editing) a new
@@ -455,30 +587,34 @@ $(function() {
 // + new house submit should redirect to house view page
 // + home view - show location on map only. 
 // + search bar should execute on enter
+// + custom icon for map marker 
+// + map bounds should match location and radius of search
+// + "locations" collection should actually be a collection of summary-house objects.
+// + popups for map markers
 
-// do we want to support 'back' button for searches? (probably... blargh)
-// map bounds should match location and radius of search
-// "locations" collection should actually be a collection of summary-house objects.
-// custom icon for map marker 
-// popups for map markers
+// e.preventDefault() on link in map popup
+// push state for searches 
+// shouldn't be able to zoom out past max extent in maps (confusing since the
+//   other results aren't there - or, keep them there, but slower map rendering). 
 // backbone form should include new fields (slug and mission?)
+// in processing search results, empty search results should display a notice
+//   and (obviously) not execute the fetch. 
+// massive radius b0rks the search results map
 // house url should use slug 
-// advanced options: other fields, radius.
 // site credits: http://thenounproject.com/noun/map-marker/#icon-No2847
 // individual house listing
 // - show map (make this entirely contained in a popup/side div?)
 // - map in bg with overlapping info div?
 // - style
-// map 
-// - different color for the location most recently submitted.
-// - framed popups with house info
-// - custom icon 
 // form validation - required fields, url, email, 
 // bootstrap properly from server - first page of listings (depends what we want homepage to be)
 // include error callbacks where appropriate (to match success callbacks)
+
 // house edit - use django auth
+// popup toggle breaks after you zoom in (? sometimes? overlapping markers?)
 // order listings by date added? (options: most recent, nearby, within xx km of yy)
 // open layers form control - make less fugly
+// advanced options: other fields, radius.
 // recapcha for new house submission
 // email reports
 // + address field search-ahead?
