@@ -589,8 +589,9 @@ $(function() {
 // + "locations" collection should actually be a collection of summary-house objects.
 // + popups for map markers
 // + e.preventDefault() on link in map popup, and on "new" link 
+// + backbone form should include new fields (slug and mission?)
 
-// backbone form should include new fields (slug and mission?)
+// image uploads! :/
 // push state for searches 
 // - hitting back button from individual house view should show listings again
 // in processing search results, empty search results should display a notice
@@ -601,6 +602,8 @@ $(function() {
 // - show map (make this entirely contained in a popup/side div?)
 // - map in bg with overlapping info div?
 // - style
+// authentication and house edit. 
+// better font
 
 // map zoom in/out should trigger a new search?
 // site credits: http://thenounproject.com/noun/map-marker/#icon-No2847

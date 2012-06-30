@@ -13,16 +13,22 @@
         <script type="text/template" id="signup-template">
 			<div class="container">
 				<div id="signup-form"> 
-				<form id="house-form">
+				<form class="well" id="house-form" enctype="multipart/form-data" method="post">
 					<!-- required -->
-					<div class="form-input">
-						<h2>Required</h2>
-						<label>House Address</label>
-						<input id="form-address" name="address" type="text" placeholder="123 example avenue, anytown, anywhere, yourcountry" required>
-					</div>
-					<div class="form-input">
-						<label>Number of Bedrooms</label>
-						<input id="form-rooms" name="rooms" type="number" required>
+					<div id="form-fields-required">
+						<div class="form-input">
+							<h2>Tell Us About Your House</h2>
+							<label>House Address</label>
+							<input id="form-address" name="address" type="text" placeholder="123 example avenue, anytown, anywhere, yourcountry" required>
+						</div>
+						<div class="form-input">
+							<label>Number of Bedrooms</label>
+							<input id="form-rooms" name="rooms" type="number" class="span1" required>
+						</div>
+						<div class="form-input">
+							<label>Tell us a bit about your house and its culture</label>
+							<textarea id="form-description" name="description" cols="50" rows="10" required></textarea>
+						</div>
 					</div>
 
 					<div id="form-fields-optional">
@@ -32,24 +38,45 @@
 							<input id="form-name" name="name" type="text" placeholder="House Name">
 						</div>
 						<div class="form-input">
-							<label>House Contact (email address) (Kept private)</label>
+							<label>Picture</label>
+							<input id="form-picture" name="picture" type="file">
+						</div>
+						<div class="form-input">
+							<label>Slug (used to create your house profile URL)</label>
+							<input id="form-slug" name="slug" type="text" placeholder="slug">
+						</div>
+						<div class="form-input">
+							<label>House Contact </label>
 							<input id="form-contact" name="contact" type="email" placeholder="you@example.com">
 						</div>
 						<div class="form-input">
-							<label>Tell us a bit about your house and its culture</label>
-							<textarea id="form-description" name="description" cols="50" rows="10"></textarea>
+							<label>Specific Mission and/or Values</label>
+							<textarea id="form-mission" name="mission_values" cols="50" rows="10"></textarea>
 						</div>
+						<div class="form-input">
+							<label>Ammenities</label>
+							<textarea id="form-ammenities" name="ammenities" cols="50" rows="5"></textarea>
+						</div>
+
 						<div class="form-input">
 							<label>House website</label>
 							<input id="form-website" name="website" type="text" placeholder="http://example.com">
 						</div>
 						<div class="form-input">
-							<label>House offers guest accommodations (crash space, guest rooms)</label>
+							<label class="label-inline">House offers guest accommodations (crash space, guest rooms)</label>
 							<input id="form-accommodations" name="accommodations" value="accommodations" type="checkbox"> 
 						</div>
 						<div class="form-input">
-							<label>House has event/co-working space</label>
+							<label class="label-inline">Number of Short term Rooms</label>
+							<input id="form-short-term-rooms" class="span1" name="short_term_rooms" type="number" placeholder="0">
+						</div>
+						<div class="form-input">
+							<label class="label-inline">House has event/co-working space</label>
 							<input id="form-events" name="events" value="events" type="checkbox"> 
+						</div>
+						<div class="form-input">
+							<label class="label-inline">House has space to share/rent</label>
+							<input id="form-share" name="space_share" value="space_share" type="checkbox"> 
 						</div>
 					</div><!-- end optional fields -->
 					<input type="submit" id="form-submit">

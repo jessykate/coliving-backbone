@@ -1,4 +1,8 @@
 
+body {
+	font-family: Georgia;
+}
+
 #main-content {
 	background-image: linear-gradient(bottom, rgb(212,212,212) 0%, rgb(240,240,240) 50%, rgb(245,245,245) 75%);
 	background-image: -o-linear-gradient(bottom, rgb(212,212,212) 0%, rgb(240,240,240) 50%, rgb(245,245,245) 75%);
@@ -20,10 +24,6 @@
 	height: 400px;
 	width: 100%;
 	background-color: #E6F1F6;
-}
-
-label {
-	display:block;
 }
 
 td > a {
@@ -87,6 +87,12 @@ tr.hover {
 }
 
 input, textarea {
-	height: auto;
 	width: 350px;
+}
+
+.label-inline {
+	display: inline;
+}
+
+#form-accommodations, #form-events, #form-share {
 }
