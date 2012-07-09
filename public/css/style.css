@@ -26,6 +26,11 @@ body {
 	background-color: #E6F1F6;
 }
 
+/* overrides a bootstrap css value causing the map tiles to display wonky. */
+#mainmap img {
+	max-width: none;
+}
+
 td > a {
 	text-decoration: none;
 }

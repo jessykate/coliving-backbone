@@ -1,9 +1,9 @@
 <html>
     <head>                                                                                                                                                     
         <title>CoLiving.org</title>
-		<link href="css/bootstrap.css" rel="stylesheet">
-		<link href="css/bootstrap-responsive.css" rel="stylesheet">
-        <link rel="stylesheet" href="css/style.css" />
+		<link href="/css/bootstrap.css" rel="stylesheet">
+		<link href="/css/bootstrap-responsive.css" rel="stylesheet">
+        <link rel="stylesheet" href="/css/style.css" />
 
 		<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
 		<!--[if lt IE 9]>
@@ -91,8 +91,13 @@
 			<div id="search-banner"> 
 				<form>
 				<div class="form-wrapper">
-					<h2>Search for (awesome co-living) Houses!</h2>
-					<input type="text" id="input-location-search" placeholder="location">
+					<h2><a href="/">Home</a> | Search for (awesome co-living) Houses!</h2>
+					<input type="text" id="input-location-search" 
+						<% if (search_string !="undefined") { %> 
+						value= "<%= search_string %>" <% } else { %> 
+						placeholder="location" 
+						<% } %> 
+					>
 					<h3>Radius (km): </h3>
 					<input type="number" id="radius-location-search" value="<%= radius %>">
 					<input type="submit" class="btn btn-inverse" id="submit-location-search" value="Find">

@@ -34,13 +34,7 @@ $(function() {
 	getCustomControls = function() {
 		var controls = [
 			new OpenLayers.Control.Attribution(),
-			new OpenLayers.Control.TouchNavigation({
-				dragPanOptions: {
-					enableKinetic: true
-				}
-			}),
-			//new OpenLayers.Control.ZoomIn(),
-			//new OpenLayers.Control.ZoomOut()
+			new OpenLayers.Control.TouchNavigation(),
 			new OpenLayers.Control.ZoomPanel()
 		];
 		return controls;
@@ -78,10 +72,6 @@ $(function() {
 			var m_per_deg_long = 113.320*Math.cos(this.center.lat())*1000.0;
 			var delta_lat =  this.radius_m/m_per_deg_lat;					
 			var delta_lon = this.radius_m/m_per_deg_long
-
-			console.log(this.center);
-			console.log(delta_lon);
-			console.log(delta_lat);
 
 			this.bounds = new OpenLayers.Bounds();
 			this.bounds.left = this.center.lng() - delta_lon;
@@ -327,23 +317,19 @@ $(function() {
 
 	window.AppView = Backbone.View.extend({
 		events: {'click #add-house': 'newHouseForm',
-			'click #submit-location-search': 'doSearch',
+			'click #submit-location-search': 'formSearch',
 			'click .house-link': 'displayHouse'
 		},
 	
 		initialize: function(options) {
-			// set fetch() to trigger the reset event and render the view. 
-			this.collection.on('reset', this.render, this);
-			// save the list of all houses so we can use it for searches
-			this.collection.fetch({success: function(collection, response) {
-				all_houses = collection.toJSON();
-			}});
 			_.bindAll(this, 'render', 'newHouseForm', 'renderMap');
 		},
 
 		render: function() {
-			var tmpl_str = $("#search-banner-template").html() + $("#map-template").html()
+			var tmpl_str = $("#search-banner-template").html() + $("#map-template").html();
 			var tmpl = _.template(tmpl_str);
+			console.log("active search string: " + activeSearch.search_string);
+			console.log("active search radius: " + activeSearch.radius);
 			$(this.el).html(tmpl({houses: this.collection.toJSON(), 
 				search_string: activeSearch.search_string, 
 				radius: activeSearch.radius
@@ -366,25 +352,40 @@ $(function() {
 			return this;
 		},
 
-		doSearch: function(e) {
-			console.log("in doSearch");
+		urlSearch: function(search_str_clean) {
+			var search_loc = search_str_clean.replace(/\+/g, " ");
+			var radius = activeSearch.radius;
+			this.doSearch(search_loc, radius);
+		},
+
+		formSearch: function(e) {
 			// pull out the value of the input field, and do a text search on
 			// the database model's address field. 
-			this.search_loc = $('#input-location-search').val();
+			e.preventDefault();
+			search_loc = $('#input-location-search').val();
 			var radius = $('#radius-location-search').val();
-			this.radius = parseInt(radius); // value in km
+			radius = parseInt(radius); // value in km
+			activeSearch.radius = radius;
+			// generate a path string by converting spaces to plus
+			// signs and removing commas
+			var search_clean = search_loc.replace(/ /g,"+").replace(/,/g,"");
+			var path = "/search/" + search_clean;
+			app.navigate(path, {trigger:true});
+		},
+
+
+		doSearch: function(search_loc, radius) {
+			console.log("in doSearch");
 
 			// geocode the search location
 			that = this;
 			var matches = [];
 			var geocoder = new google.maps.Geocoder();
-			geocoder.geocode({'address': this.search_loc}, function(results, status) {
+			geocoder.geocode({'address': search_loc}, function(results, status) {
 				if (status == google.maps.GeocoderStatus.OK) {
-					console.log("geocoding results for search location:");
+					// XXX HERE: debuging radius. 
 					var search_gloc = results[0].geometry.location;
-					matches = get_loc_matches(search_gloc);
-					console.log("matches were:");
-					console.log(matches);
+					matches = get_loc_matches(search_gloc, radius);
 					// populate a collection with the matched items, display
 					// them on the map. 
 					
@@ -392,15 +393,14 @@ $(function() {
 					console.log(search_results.length + " matches found.");
 
 					// save info about the location and bounds of the active search.
-					activeSearch.update(search_gloc, that.radius, this.search_loc ); 
+					activeSearch.update(search_gloc, radius, search_loc ); 
 					that.renderList(search_results);
-			
 				} else {
 					console.log("Error: Geocode was not successful: " + status);
 				}
 			});
 			
-			get_loc_matches = function(search_gloc) {
+			get_loc_matches = function(search_gloc, radius) {
 				// ensure the collection has all known locations before doing
 				// the search (XXX this could be a local cache of the known
 				// locations...)
@@ -412,16 +412,12 @@ $(function() {
 					var this_loc = locationParse(l.get("latLong")); 
 					var this_gloc = new google.maps.LatLng(this_loc[1], this_loc[0]);
 					var dist = google.maps.geometry.spherical.computeDistanceBetween(search_gloc, this_gloc);
-					if (dist < that.radius*1000.0) {
+					if (dist < radius*1000.0) {
 						matches.push(l)
 					};
 				});
-				console.log("matches were:");
-				console.log(matches);
 				return matches;
 			}; 
-
-			e.preventDefault();
 		},
 
 		displayHouse: function(e) {
@@ -441,11 +437,12 @@ $(function() {
 		renderMap: function() {
 			console.log("in renderMap(). processing " + this.collection.length + " items.");
 
-			var map = new OpenLayers.Map({div: "mainmap", controls: getCustomControls()});
+			//var map = new OpenLayers.Map({div: "mainmap", controls: getCustomControls()});
+			var map = new OpenLayers.Map("mainmap");
 
 			var fromProjection = new OpenLayers.Projection("EPSG:4326");   // Transform from WGS 1984
 			var toProjection = new OpenLayers.Projection("EPSG:900913"); // to Spherical Mercator Projection
-			map.updateCenter = function(locStr, zoom, that) {
+			map.updateCenter = function(locStr, zoom) {
 				loc = locationParse(locStr)
 				var mapCenter = new OpenLayers.LonLat(loc[0], loc[1]).transform( fromProjection, toProjection);
 				// forces the tiles of the map to render. 
@@ -457,7 +454,6 @@ $(function() {
 			if (activeSearch.bounds != null) {
 				console.log("processing bounds of active search");
 				var extent = activeSearch.getBounds().transform(fromProjection, toProjection);
-				map.restrictedExtent = extent;
 				map.addLayer(new OpenLayers.Layer.OSM({
 					'maxExtent': extent,
 					'maxResolution': "auto"
@@ -468,14 +464,13 @@ $(function() {
 				console.log("no active search");
 				map.addLayer(new OpenLayers.Layer.OSM());
 				var zoom = 2;
-				// location chosen empirically
-				map.updateCenter("33.137551, -163.476563", zoom, this);
+				// manually set location
+				map.updateCenter("33.137551, -163.476563", zoom);
 			}
 
 			var markerLayer = new OpenLayers.Layer.Markers( "Markers" );
 			map.addLayer(markerLayer);
 
-			//var locations = this.collection.pluck("latLong");
 			that = this;
 			this.collection.forEach(function(house) {
 				var ll = house.get("latLong");
@@ -522,6 +517,7 @@ $(function() {
 		routes: {
 			"": "home",
 			"new": "newHouse",
+			"search/:search_str": "search",
 			"house/:houseid": "showHouse"
 		},
 
@@ -531,6 +527,23 @@ $(function() {
 		// view for searching and displaying filtered lists of houses. 
 		home: function() {
 			var appview = new AppView({el:$("#content"), collection: houses});
+			appview.collection.on('reset', appview.render);
+			appview.collection.fetch({success: function(collection, response) {
+				// save the list of all houses so it can be re-used for
+				// searches
+				all_houses = collection.toJSON();
+			}});
+		},
+
+		search: function(search_str) {
+			var appview = new AppView({el:$("#content"), collection: houses});
+			appview.collection.on('reset', appview.urlSearch(search_str));
+			appview.collection.fetch({success: function(collection, response) {
+				// save the list of all houses so it can be re-used for
+				// searches
+				all_houses = collection.toJSON();
+			}});
+			
 		},
 
 		// view for creating and submitting (and eventually editing) a new
@@ -590,13 +603,15 @@ $(function() {
 // + popups for map markers
 // + e.preventDefault() on link in map popup, and on "new" link 
 // + backbone form should include new fields (slug and mission?)
+// + push state for searches 
+// + - hitting back button from individual house view should show listings again
+// + location and radius not persisting
 
 // image uploads! :/
-// push state for searches 
-// - hitting back button from individual house view should show listings again
 // in processing search results, empty search results should display a notice
 //   and (obviously) not execute the fetch. 
 // massive radius b0rks the search results map
+// single search results don't show map bounds properly
 // house url should use slug 
 // individual house listing
 // - show map (make this entirely contained in a popup/side div?)
