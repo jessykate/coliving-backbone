@@ -1,6 +1,13 @@
 
 body {
-	font-family: Georgia;
+	//font-family: 'Advent Pro', sans-serif;
+	//font-family: 'Average', serif;
+	font-family: 'Port Lligat Sans', sans-serif;
+	//font-family: 'Balthazar', serif;
+	//font-family: 'Pontano Sans', sans-serif;
+	//font-family: 'Belleza', sans-serif;
+	//font-family: 'Fanwood Text', serif;
+	//font-family: 'Marmelad', sans-serif;
 }
 
 #main-content {
@@ -97,6 +104,19 @@ input, textarea {
 
 .label-inline {
 	display: inline;
+}
+
+#search-alert-empty {
+	width: 400px;
+	margin: auto;
+}
+
+#home-link {
+	padding-left: 30px;
+}
+
+#house-detail {
+	width:500px;
 }
 
 #form-accommodations, #form-events, #form-share {

@@ -91,9 +91,9 @@
 
         <script type="text/template" id="search-banner-template">
 			<div id="search-banner"> 
-				<div id="home-link"><h3><a href="/">Home</a></h3></div> 
 				<form>
 				<div class="form-wrapper">
+					<div class="home-link"><a href="/">Home</a> </div> 
 					<h2> Search for awesome co-living Houses </h2>
 					<input type="text" id="input-location-search" 
 						<% if (search_string !="undefined") { %> 
@@ -146,16 +146,10 @@
 			</div>
 		</script>
 
-		<script type="text/template" id="house-template">
-			<div class="container">
-				<div id="house-detail"> <div class="well">
-					<h1> <%= house.name %> </h1>
-					<em> <%= house.address %> </em>
-					<div id="description">
-						<%= house.description %>
-					</div>
-			</div></div>
-			</div>
+        <script type="text/template" id="house-template">
+			<% _.each(house, function(field) { %>
+				<div> <%= field %> </div>
+			<% }); %>
 		</script>
 
     </head>

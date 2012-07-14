@@ -1,7 +1,7 @@
 $(function() {
 
 	/////////////////////// SETTINGS ////////////////////////
-	API_BASE = "http://localhost:8080/api/v1/";
+	API_BASE = "http://localhost:8111/api/v1/";
 	MEDIA_BASE = "http://localhost:8989/";
 
 	/////////////////////// UTIL ////////////////////////
@@ -71,13 +71,32 @@ $(function() {
 			var m_per_deg_lat = 110540.0;
 			var m_per_deg_long = 113.320*Math.cos(this.center.lat())*1000.0;
 			var delta_lat =  this.radius_m/m_per_deg_lat;					
-			var delta_lon = this.radius_m/m_per_deg_long
+			var delta_lon = this.radius_m/m_per_deg_long;
+
+			var north, east;
+			if (this.center.lng() < 0 && this.center.lat() > 0) {
+				// north america 
+				north = 1;
+				east = 1;
+			} else if (this.center.lng() > 0 && this.center.lat() > 0) {
+				// europe
+				 north = 1;
+				 east = -1;
+			} else if (this.center.lng() > 0 && this.center.lat() < 0) {
+				// australia
+				 north = -1;
+				 east = -1;
+			} else {
+				// south america
+				 north = -1;
+				 east = -1;
+			}
 
 			this.bounds = new OpenLayers.Bounds();
-			this.bounds.left = this.center.lng() - delta_lon;
-			this.bounds.right = this.center.lng() + delta_lon;
-			this.bounds.top = this.center.lat() + delta_lat;
-			this.bounds.bottom = this.center.lat() - delta_lon;
+			this.bounds.left = this.center.lng() - east*delta_lon;
+			this.bounds.right = this.center.lng() + east*delta_lon;
+			this.bounds.top = this.center.lat() + north*delta_lat;
+			this.bounds.bottom = this.center.lat() - north*delta_lon;
 			console.log(this.bounds);
 		},
 		this.getBounds= function() {
@@ -353,14 +372,17 @@ $(function() {
 		},
 
 		urlSearch: function(search_str_clean) {
+			console.log("in urlSearch");
 			var search_loc = search_str_clean.replace(/\+/g, " ");
 			var radius = activeSearch.radius;
+			console.log("radius in urlSearch: " + radius);
 			this.doSearch(search_loc, radius);
 		},
 
 		formSearch: function(e) {
 			// pull out the value of the input field, and do a text search on
 			// the database model's address field. 
+			console.log("in formSearch");
 			e.preventDefault();
 			search_loc = $('#input-location-search').val();
 			var radius = $('#radius-location-search').val();
@@ -394,16 +416,21 @@ $(function() {
 
 					// save info about the location and bounds of the active search.
 					activeSearch.update(search_gloc, radius, search_loc ); 
-					that.renderList(search_results);
+					if (search_results.length == 0) {
+						$("#home-link").append('<div class="alert" id="search-alert-empty"><a class="close" data-dismiss="alert" href="#">×</a> <strong>Oops!</strong> No results for that search.</div>');
+					} else {
+						that.renderList(search_results);
+					}
 				} else {
 					console.log("Error: Geocode was not successful: " + status);
 				}
 			});
 			
 			get_loc_matches = function(search_gloc, radius) {
+				// unbind the reset event or this will prematurely trigger the call to render()
+				that.collection.unbind('reset');
 				// ensure the collection has all known locations before doing
-				// the search (XXX this could be a local cache of the known
-				// locations...)
+				// the search (use the local cache of known locations...)
 				that.collection.reset(all_houses);
 				console.log("get_loc_matches: iterating over " + that.collection.length + "items");
 				that.collection.forEach(function(l) {
@@ -606,20 +633,22 @@ $(function() {
 // + push state for searches 
 // + - hitting back button from individual house view should show listings again
 // + location and radius not persisting
-
-// image uploads! :/
+// + search results being overwritten by duplicate call to render()
 // in processing search results, empty search results should display a notice
+
+// better font
+// api paging (default limit is 20/page)
 //   and (obviously) not execute the fetch. 
 // massive radius b0rks the search results map
 // single search results don't show map bounds properly
-// house url should use slug 
 // individual house listing
 // - show map (make this entirely contained in a popup/side div?)
 // - map in bg with overlapping info div?
 // - style
+// image uploads! :/
 // authentication and house edit. 
-// better font
 
+// house url should use slug 
 // map zoom in/out should trigger a new search?
 // site credits: http://thenounproject.com/noun/map-marker/#icon-No2847
 // form validation - required fields, url, email, 
