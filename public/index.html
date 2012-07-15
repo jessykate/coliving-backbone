@@ -20,7 +20,7 @@
 					<div id="form-fields-required">
 						<div class="form-input">
 							<h2>Tell Us About Your House</h2>
-							<label>House Address</label>
+							<label>Address</label>
 							<input id="form-address" name="address" type="text" placeholder="123 example avenue, anytown, anywhere, yourcountry" required>
 						</div>
 						<div class="form-input">
@@ -31,26 +31,14 @@
 							<label>Tell us a bit about your house and its culture</label>
 							<textarea id="form-description" name="description" cols="50" rows="10" required></textarea>
 						</div>
-					</div>
-
-					<div id="form-fields-optional">
-						<h2>Optional</h2>
 						<div class="form-input">
 							<label>House Name</label>
 							<input id="form-name" name="name" type="text" placeholder="House Name">
 						</div>
-						<div class="form-input">
-							<label>Picture</label>
-							<input id="form-picture" name="picture" type="file">
-						</div>
-						<div class="form-input">
-							<label>Slug (used to create your house profile URL)</label>
-							<input id="form-slug" name="slug" type="text" placeholder="slug">
-						</div>
-						<div class="form-input">
-							<label>House Contact </label>
-							<input id="form-contact" name="contact" type="email" placeholder="you@example.com">
-						</div>
+					</div>
+
+					<div id="form-fields-optional">
+						<h2>Optional</h2>
 						<div class="form-input">
 							<label>Specific Mission and/or Values</label>
 							<textarea id="form-mission" name="mission_values" cols="50" rows="10"></textarea>
@@ -63,6 +51,14 @@
 						<div class="form-input">
 							<label>House website</label>
 							<input id="form-website" name="website" type="text" placeholder="http://example.com">
+						</div>
+						<div class="form-input">
+							<label>How to get in touch?</label>
+							<input id="form-get-in-touch" name="get_in_touch" type="email" placeholder="email, website, etc.">
+						</div>
+						<div class="form-input">
+							<label>Slug (used to create your house profile URL)</label>
+							<input id="form-slug" name="slug" type="text" placeholder="slug">
 						</div>
 						<div class="form-input">
 							<label class="label-inline">House offers guest accommodations (crash space, guest rooms)</label>
@@ -84,14 +80,15 @@
 					<input type="submit" id="form-submit">
 				</form>
 			</div>
-			<div id="house-map"></div>
+				<div class="house-map-container">
+					<div id="house-map"></div>
+				</div>
 			<div class="clear"></div>
 			</div>
 		</script>
 
         <script type="text/template" id="search-banner-template">
 			<div id="search-banner"> 
-				<div id="home-link"><h3><a href="/">Home</a></h3></div> 
 				<form>
 				<div class="form-wrapper">
 					<h2> Search for awesome co-living Houses </h2>
@@ -113,10 +110,8 @@
 		</script>
 
         <script type="text/template" id="map-template">
-			<div id="main-content">
 				<div class="hero-unit">
 					<div id="mainmap"></div>
-				</div>
 			</div>
 		</script>
 
@@ -148,22 +143,51 @@
 
 		<script type="text/template" id="house-template">
 			<div class="container">
-				<div id="house-detail"> <div class="well">
-					<h1> <%= house.name %> </h1>
-					<em> <%= house.address %> </em>
-					<div id="description">
-						<%= house.description %>
+				<div id="house-detail"> 
+					<div class="well">
+						<h1> <%= house.name %> </h1>
+						<em> <%= house.address %> </em>
+						<div class="website-link"><a href="<%= house.website %>"><%= house.website %></a></div>
+						<h1> <%= house.rooms %> <% if (house.short_term_rooms != null) { %> / <%= house.short_term_rooms %> <% } %> </h1>
+						<% if (house.events != null) { %> <img src="/img/nouns/noun_project_3359.png"> <% } %> 
+						<% if (house.guests != null) { %>  <img src="/img/nouns/noun_project_1072.png">  <% } %> 
+						<% if (house.space_share != null) { %>  <img src="/img/nouns/noun_project_1554.png"> <% } %> 
+
+						<div id="description" class="house-para-text">
+							<%= house.description %>
+						</div>
+						<div id="mission" class="house-para-text">
+							<%= house.mission_values%>
+						</div>
+						<div id="amenities" class="house-para-text">
+							<%= house.amenities %>
+						</div>
+						<div><em> created on <%= house.created %></em></div>
 					</div>
-			</div></div>
-			</div>
+				</div>
+				<div class="house-map-container">
+					<div id="house-map"></div>
+				</div>
+				<div class="clear"></div>
+				</div>
 		</script>
 
     </head>
 
-    <body>
+	<body>
+		<div class="container">
+		<header id="top-nav">
+			<h1><span id="home-link"><a href="/"><img src="/img/nouns/noun_project_986.png" width="50px" alt="Home"></span>CoLiving.org</a></h1>
+		</header>
 
 		<div class="" id="content">
 			<!-- populated by backbone views -->	
+		</div>
+		<footer>
+			<span id="about-link"><a href="">About</a></span> | 
+			<span>All symbols from <a href="http://thenounproject.com">The Noun Project</a></span> | 
+			<span>A Project of the <a href="http://embassynetwork.com">Embassy Network</a></span>
+		</footer>
 		</div>
 
 

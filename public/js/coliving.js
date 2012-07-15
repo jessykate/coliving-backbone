@@ -160,20 +160,10 @@ $(function() {
 
 	window.Houses = Backbone.Collection.extend({
 		model: House,
-		initialize: function(models, options) {
-			if (options && options.subset != "undefined") {
-				this.subset = options.subset;
-			}
-		},
+		initialize: function(models, options) { },
 		// XXX (jks) careful with pagination and limits once list gets long
 		url: function() {
-			if (this.subset == true) {
-				ids = this.pluck("id");
-				ids_str = ids.join(";");
-				return API_BASE + "houses/set/" + ids_str +"/?format=json"
-			} else {
-				return API_BASE + "houses/?format=json";
-			}
+			return API_BASE + "houses/?format=json&limit=200";
 		},
 
 		parse: function(response) {
@@ -189,17 +179,6 @@ $(function() {
 		}
 	});
 
-	/*
-	window.Location = Backbone.Model.extend({});
-	window.Locations = Backbone.Collection.extend({
-		model: Location,
-		url: "http://localhost:8080/api/v1/locations/?format=json",
-		parse: function(response) {
-			return response.objects;
-		}
-	});
-	*/
-
 	/////////////////////// VIEWS ////////////////////////
 
 	window.houses = new Houses();
@@ -213,8 +192,47 @@ $(function() {
 			console.log("rendering individual house view");
 			console.log(this.model.toJSON());
 			$(this.el).html(this.template( {house: this.model.toJSON()} ));
+			this.locationMap();
 			return this;
-		}
+		},
+
+		// XXX this is an exact copy of the locationMap function from the
+		// newHouse view. should create a common base view. 
+		locationMap: function() {
+			console.log("in individual house locationMap().");
+
+			// set up the map with the tile layer and a layer to put markers
+			// in. 
+			$("#house-map").html("");
+			var map = new OpenLayers.Map({div: "house-map"});
+			var panel = new OpenLayers.Control.Panel();
+			panel.addControls(getCustomControls());
+			map.addLayer(new OpenLayers.Layer.OSM());
+			var markerLayer = new OpenLayers.Layer.Markers( "Markers" );
+			map.addLayer(markerLayer);
+
+			var latLong = this.model.get("latLong");
+			// returns location string as array
+			loc = locationParse(latLong);
+			var lonlat = new OpenLayers.LonLat(loc[0], loc[1]).transform(
+				new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+				new OpenLayers.Projection("EPSG:900913")
+			);
+
+			markerLayer.addMarker(new OpenLayers.Marker(lonlat, geoIcon()))
+
+			map.updateCenter = function(loc, zoom) {
+				var fromProjection = new OpenLayers.Projection("EPSG:4326");   // Transform from WGS 1984
+				var toProjection = new OpenLayers.Projection("EPSG:900913"); // to Spherical Mercator Projection
+				// center the map somewhere in the middle of the world
+				var mapCenter = new OpenLayers.LonLat(loc[0], loc[1]).transform( fromProjection, toProjection);
+				// forces the tiles of the map to render. 
+				this.setCenter(mapCenter, zoom);
+			}
+
+			var zoom = 15;
+			map.updateCenter(loc, zoom);
+		},
 
 	});
 
@@ -268,7 +286,7 @@ $(function() {
 			// set up the map with the tile layer and a layer to put markers
 			// in. 
 			$("#house-map").html("");
-			var map = new OpenLayers.Map({div: "house-map", controls: getCustomControls()});
+			var map = new OpenLayers.Map({div: "house-map"});
 			var panel = new OpenLayers.Control.Panel();
 			panel.addControls(getCustomControls());
 			map.addLayer(new OpenLayers.Layer.OSM());
@@ -417,7 +435,7 @@ $(function() {
 					// save info about the location and bounds of the active search.
 					activeSearch.update(search_gloc, radius, search_loc ); 
 					if (search_results.length == 0) {
-						$("#home-link").append('<div class="alert" id="search-alert-empty"><a class="close" data-dismiss="alert" href="#">×</a> <strong>Oops!</strong> No results for that search.</div>');
+						$("#search-banner").prepend('<div class="alert" id="search-alert-empty"><a class="close" data-dismiss="alert" href="#">×</a> <strong>Oops!</strong> No results for that search.</div>');
 					} else {
 						that.renderList(search_results);
 					}
@@ -465,16 +483,18 @@ $(function() {
 			console.log("in renderMap(). processing " + this.collection.length + " items.");
 
 			//var map = new OpenLayers.Map({div: "mainmap", controls: getCustomControls()});
-			var map = new OpenLayers.Map("mainmap");
+			var map = new OpenLayers.Map({div:"mainmap"});
 
 			var fromProjection = new OpenLayers.Projection("EPSG:4326");   // Transform from WGS 1984
 			var toProjection = new OpenLayers.Projection("EPSG:900913"); // to Spherical Mercator Projection
+			
 			map.updateCenter = function(locStr, zoom) {
 				loc = locationParse(locStr)
 				var mapCenter = new OpenLayers.LonLat(loc[0], loc[1]).transform( fromProjection, toProjection);
 				// forces the tiles of the map to render. 
 				this.setCenter(mapCenter, zoom);
 			}
+			
 
 			// if there's an active search, restrict the bounds of the map to
 			// the search area. else show the whole world.
@@ -489,10 +509,13 @@ $(function() {
 
 			} else {
 				console.log("no active search");
-				map.addLayer(new OpenLayers.Layer.OSM());
+				map.addLayer(new OpenLayers.Layer.OSM({
+					'maxResolution': "auto"
+				}));
 				var zoom = 2;
 				// manually set location
-				map.updateCenter("33.137551, -163.476563", zoom);
+				//map.updateCenter("33.137551, -163.476563", zoom);
+				map.updateCenter("41.137551, -77.476563", zoom);
 			}
 
 			var markerLayer = new OpenLayers.Layer.Markers( "Markers" );
@@ -634,24 +657,28 @@ $(function() {
 // + - hitting back button from individual house view should show listings again
 // + location and radius not persisting
 // + search results being overwritten by duplicate call to render()
-// in processing search results, empty search results should display a notice
+// + in processing search results, empty search results should display a notice
+// + individual house listing
 
-// better font
-// api paging (default limit is 20/page)
+// house model changes: 
+//	text vs char field?
+//	events description field. 
 //   and (obviously) not execute the fetch. 
-// massive radius b0rks the search results map
-// single search results don't show map bounds properly
-// individual house listing
-// - show map (make this entirely contained in a popup/side div?)
-// - map in bg with overlapping info div?
-// - style
-// image uploads! :/
-// authentication and house edit. 
+// use noun project icons for "has event space" "has short term rooms" etc. 
+// search results map bounds are slightly off
+// image uploads! / url
+// oath authentication to google? and house edit. 
 
 // house url should use slug 
+// font selection: http://www.google.com/webfonts#UsePlace:use/Collection:Average|Port+Lligat+Sans|Balthazar|Pontano+Sans|Belleza|Fanwood+Text|Marmelad|Advent+Pro|Megrim|Goudy+Bookletter+1911|Ruda
+// front-page filters for short-term accommodations, events, sharing. 
+// handle pagination properly (currently just upping the limit for a single call). 
+// common base view for new and existing houses with locationMap function code shared. 
+// embed twitter, flickr, other social media streams?
 // map zoom in/out should trigger a new search?
 // site credits: http://thenounproject.com/noun/map-marker/#icon-No2847
-// form validation - required fields, url, email, 
+// massive radius b0rks the search results map (validate radius before submission)
+// form validation - required fields, url, email. 
 // bootstrap properly from server - first page of listings (depends what we want homepage to be)
 // include error callbacks where appropriate (to match success callbacks)
 

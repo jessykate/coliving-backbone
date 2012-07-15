@@ -3,6 +3,7 @@ body {
 	//font-family: 'Advent Pro', sans-serif;
 	//font-family: 'Average', serif;
 	font-family: 'Port Lligat Sans', sans-serif;
+	font-size: 14px;
 	//font-family: 'Balthazar', serif;
 	//font-family: 'Pontano Sans', sans-serif;
 	//font-family: 'Belleza', sans-serif;
@@ -29,13 +30,15 @@ body {
 
 #mainmap {
 	height: 400px;
-	width: 100%;
+	width: 1170px;
 	background-color: #E6F1F6;
 }
 
 /* overrides a bootstrap css value causing the map tiles to display wonky. */
-#mainmap img {
+#mainmap img, #house-map img {
 	max-width: none;
+	vertical-align: baseline;
+	border: 0px;
 }
 
 td > a {
@@ -51,7 +54,6 @@ tr.hover {
 #house-map {
 	width: 300px;
 	height: 300px;
-	float: left;
 }
 
 #signup-form {
@@ -88,11 +90,10 @@ tr.hover {
 #search-banner {
 	text-align: center;
 	margin-bottom: 8px;
-	padding-top: 20px;
 	padding-bottom: 10px;
-	-webkit-box-shadow: 3px 2px 10px rgba(0,0,0,.5);
+	-webkit-box-shadow: 0px 4px 5px -2px rgba(0,0,0,.5);
 	-moz-box-shadow: 3px 2px 10px rgba(0,0,0,.5);
-	box-shadow: 3px 2px 10px rgba(0,0,0,.5);
+	box-shadow: 0px 4px 5px -2px rgba(0,0,0,.5);
 }
 
 #content {
@@ -113,11 +114,74 @@ input, textarea {
 
 #home-link {
 	padding-left: 30px;
+	margin-right: 10px;
 }
 
 #house-detail {
 	width:500px;
+	float: left;
 }
 
-#form-accommodations, #form-events, #form-share {
+#top-nav {
+	height: 31px;
+	margin-top: 20px;
+	margin-bottom: 30px;
+}
+
+footer {
+	background: #EDEDED;
+	padding: 30px;
+	margin-top: 30px;
+	font-size: 14px;
+}
+
+label, input, button, select, textarea, body {
+	font-size: 16px;
+}
+
+.house-map-container {
+	margin-left: 50px;
+	padding: 10px;
+	float: left;
+	background-image: linear-gradient(bottom, rgb(255,255,255) 2%, rgb(252,249,252) 4%, rgb(186,182,186) 76%);
+	background-image: -o-linear-gradient(bottom, rgb(255,255,255) 2%, rgb(252,249,252) 4%, rgb(186,182,186) 76%);
+	background-image: -moz-linear-gradient(bottom, rgb(255,255,255) 2%, rgb(252,249,252) 4%, rgb(186,182,186) 76%);
+	background-image: -webkit-linear-gradient(bottom, rgb(255,255,255) 2%, rgb(252,249,252) 4%, rgb(186,182,186) 76%);
+	background-image: -ms-linear-gradient(bottom, rgb(255,255,255) 2%, rgb(252,249,252) 4%, rgb(186,182,186) 76%);
+
+	background-image: -webkit-gradient(
+		linear,
+		left bottom,
+		left top,
+		color-stop(0.02, rgb(255,255,255)),
+		color-stop(0.04, rgb(252,249,252)),
+		color-stop(0.76, rgb(186,182,186))
+	);
+}
+
+.house-para-text {
+	padding: 10px;
+}
+
+header a {
+	color: black;
+	text-decoration: none;
+	vertical-align: middle;
+}
+
+header a:hover {
+	color: #666;
+	text-decoration: none;
+}
+
+header img {
+	vertical-align: baseline;
+}
+
+header h1 {
+	font-family: 'Average', serif;
+}
+
+#search-banner h2 {
+	font-family: 'Marmelad', sans-serif;
 }
