@@ -91,14 +91,15 @@
 			<div id="search-banner"> 
 				<form>
 				<div class="form-wrapper">
-					<h2> Search for awesome co-living Houses </h2>
+					<h1> Learn about coliving houses.</h1> 
+					<h2> Location:</h2>
 					<input type="text" id="input-location-search" 
 						<% if (search_string !="undefined") { %> 
 						value= "<%= search_string %>" <% } else { %> 
 						placeholder="location" 
 						<% } %> 
 					>
-					<h3>Radius (km): </h3>
+					<h2>Radius (km): </h2>
 					<input type="number" id="radius-location-search" value="<%= radius %>">
 					<input type="submit" class="btn btn-inverse" id="submit-location-search" value="Find">
 				</div>

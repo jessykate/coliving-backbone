@@ -658,18 +658,24 @@ $(function() {
 // + location and radius not persisting
 // + search results being overwritten by duplicate call to render()
 // + in processing search results, empty search results should display a notice
+// + and (obviously) not execute the fetch. 
 // + individual house listing
 
 // house model changes: 
 //	text vs char field?
 //	events description field. 
-//   and (obviously) not execute the fetch. 
-// use noun project icons for "has event space" "has short term rooms" etc. 
+// htmlSummary() should always include url to house listing
+// map marker popup should not include description or url. 
+// address obfuscation option
 // search results map bounds are slightly off
+// fix modernomad documentation about PIL install, remove mailman dep.  
+// pull out local settings for coliving.org
+// use noun project icons for "has event space" "has short term rooms" etc. 
 // image uploads! / url
 // oath authentication to google? and house edit. 
 
 // house url should use slug 
+// clean up extra font and image includes. 
 // font selection: http://www.google.com/webfonts#UsePlace:use/Collection:Average|Port+Lligat+Sans|Balthazar|Pontano+Sans|Belleza|Fanwood+Text|Marmelad|Advent+Pro|Megrim|Goudy+Bookletter+1911|Ruda
 // front-page filters for short-term accommodations, events, sharing. 
 // handle pagination properly (currently just upping the limit for a single call). 
